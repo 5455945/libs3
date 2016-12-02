@@ -31,16 +31,17 @@
 
 #define _XOPEN_SOURCE 600
 #include <ctype.h>
-#include <getopt.h>
+#include "getopt.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
+//#include <strings.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
-#include <unistd.h>
+//#include <unistd.h>
 #include "libs3.h"
+#pragma warning(disable: 4996) 
 
 // Some Windows stuff
 #ifndef FOPEN_EXTRA_FLAGS
@@ -724,7 +725,8 @@ static int should_retry()
     if (retriesG--) {
         // Sleep before next retry; start out with a 1 second sleep
         static int retrySleepInterval = 1 * SLEEP_UNITS_PER_SECOND;
-        sleep(retrySleepInterval);
+        //sleep(retrySleepInterval);
+		Sleep(retrySleepInterval);  // zhangfj
         // Next sleep 1 second longer
         retrySleepInterval++;
         return 1;

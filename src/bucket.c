@@ -455,8 +455,8 @@ static S3Status make_list_bucket_callback(ListBucketData *lbData)
                        !strcmp(lbData->isTruncated, "1")) ? 1 : 0;
 
     // Convert the contents
-    S3ListBucketContent contents[lbData->contentsCount];
-
+    //S3ListBucketContent contents[lbData->contentsCount];
+	S3ListBucketContent* contents = malloc(sizeof(S3ListBucketContent) * lbData->contentsCount);
     int contentsCount = lbData->contentsCount;
     for (i = 0; i < contentsCount; i++) {
         S3ListBucketContent *contentDest = &(contents[i]);
@@ -471,18 +471,23 @@ static S3Status make_list_bucket_callback(ListBucketData *lbData)
         contentDest->ownerDisplayName = (contentSrc->ownerDisplayName[0] ?
                                          contentSrc->ownerDisplayName : 0);
     }
+	free(contents);
 
     // Make the common prefixes array
     int commonPrefixesCount = lbData->commonPrefixesCount;
-    char *commonPrefixes[commonPrefixesCount];
+    //char *commonPrefixes[commonPrefixesCount];
+	char** commonPrefixes = malloc(sizeof(char*) *commonPrefixesCount);
     for (i = 0; i < commonPrefixesCount; i++) {
         commonPrefixes[i] = lbData->commonPrefixes[i];
     }
 
-    return (*(lbData->listBucketCallback))
+	S3Status status = (*(lbData->listBucketCallback))
         (isTruncated, lbData->nextMarker,
          contentsCount, contents, commonPrefixesCount, 
          (const char **) commonPrefixes, lbData->callbackData);
+	free(commonPrefixes);
+
+	return status;
 }
 
 

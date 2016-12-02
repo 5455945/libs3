@@ -1,4 +1,46 @@
 This directory contains the libs3 library.
-
 The libs3 library is free software.  See the file LICENSE for copying
 permission.
+
+
+2016-12-02 by 5455945
+
+libs3 amazon s3 C语言封装接口
+
+据说兼容amazon 的云存储。
+官网：http://ceph.org/
+中文社区：http://ceph.org.cn/
+中文文档：http://docs.ceph.org.cn/
+上海万根网络的云存储是完全兼容Ceph的，也就完全兼容libs3。
+新浪云似乎也是兼容的。
+
+libs3中文文档
+http://docs.openfans.org/ceph/ceph4e2d658765876863/ceph-1/ceph-object-gateway3010ceph5bf98c617f5151733011/s3-api/c
+libs3对应英文文档
+http://docs.ceph.com/docs/master/radosgw/s3/cpp/#creating-a-bucket
+
+github上面搜索libs3源码，比较活跃的是bji.libs3，对linux支持较好，windows需要使用mingw编译。
+
+libs3编译依赖libcurl和libxml2，使用mingw编译后，在windows下面不方便调试。因代码量较小，就直接在windows下修改了。
+
+原始代码是从https://github.com/bji/libs3 fork来的。
+
+提交到https://github.com/5455945/libs3。
+
+windows版本代码提交到win_dev分支了。
+
+在bin-build下面提供了vs2015 的 libs3.sln，和4个工程文件。对应 x64&x86 Debug/Release 版本。libs3编译为动态连接库。提供了libcurl和libxml2库。
+直接用vs2015打开libs3.sln即可编译调试。
+
+
+使用方式：
+命令行窗口：
+cd d:\git\
+git clone https://github.com/5455945/libs3.git
+cd d:\git
+git checkout win_dev
+
+用 vs2015 打开 d:\git\libs3\win_build\libs3.sln ，编译调试。
+
+目标文件在 d:\git\libs3\bin 下面。
+

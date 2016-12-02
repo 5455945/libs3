@@ -30,6 +30,7 @@
 #include "request.h"
 #include "request_context.h"
 
+#pragma comment(lib, "ws2_32.lib")
 
 S3Status S3_create_request_context(S3RequestContext **requestContextReturn)
 {

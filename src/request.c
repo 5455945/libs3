@@ -25,7 +25,7 @@
  ************************************************************************** **/
 
 #include <ctype.h>
-#include <pthread.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <sys/utsname.h>
@@ -33,7 +33,7 @@
 #include "request_context.h"
 #include "response_headers_handler.h"
 #include "util.h"
-
+#include <pthread.h>
 
 #define USER_AGENT_SIZE 256
 #define REQUEST_STACK_SIZE 32
@@ -347,7 +347,8 @@ static S3Status compose_amz_headers(const RequestParams *params,
     time_t now = time(NULL);
     char date[64];
     struct tm gmt;
-    strftime(date, sizeof(date), "%a, %d %b %Y %H:%M:%S GMT", gmtime_r(&now, &gmt));
+	gmt = *gmtime(&now);
+    strftime(date, sizeof(date), "%a, %d %b %Y %H:%M:%S GMT", &gmt);
     headers_append(1, "x-amz-date: %s", date);
 
     if (params->httpRequestType == HttpRequestTypeCOPY) {
@@ -491,8 +492,9 @@ static S3Status compose_standard_headers(const RequestParams *params,
     if (params->putProperties && (params->putProperties->expires >= 0)) {
         time_t t = (time_t) params->putProperties->expires;
         struct tm gmt;
+		gmt = *gmtime(&t);
         strftime(values->expiresHeader, sizeof(values->expiresHeader),
-                 "Expires: %a, %d %b %Y %H:%M:%S UTC", gmtime_r(&t, &gmt));
+                 "Expires: %a, %d %b %Y %H:%M:%S UTC", &gmt);
     }
     else {
         values->expiresHeader[0] = 0;
@@ -503,9 +505,10 @@ static S3Status compose_standard_headers(const RequestParams *params,
         (params->getConditions->ifModifiedSince >= 0)) {
         time_t t = (time_t) params->getConditions->ifModifiedSince;
         struct tm gmt;
+		gmt = *gmtime(&t);
         strftime(values->ifModifiedSinceHeader,
                  sizeof(values->ifModifiedSinceHeader),
-                 "If-Modified-Since: %a, %d %b %Y %H:%M:%S UTC", gmtime_r(&t, &gmt));
+                 "If-Modified-Since: %a, %d %b %Y %H:%M:%S UTC", &gmt);
     }
     else {
         values->ifModifiedSinceHeader[0] = 0;
@@ -516,9 +519,10 @@ static S3Status compose_standard_headers(const RequestParams *params,
         (params->getConditions->ifNotModifiedSince >= 0)) {
         time_t t = (time_t) params->getConditions->ifNotModifiedSince;
         struct tm gmt;
+		gmt = *gmtime(&t);
         strftime(values->ifUnmodifiedSinceHeader,
                  sizeof(values->ifUnmodifiedSinceHeader),
-                 "If-Unmodified-Since: %a, %d %b %Y %H:%M:%S UTC", gmtime_r(&t, &gmt));
+                 "If-Unmodified-Since: %a, %d %b %Y %H:%M:%S UTC", &gmt);
     }
     else {
         values->ifUnmodifiedSinceHeader[0] = 0;

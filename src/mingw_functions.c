@@ -27,6 +27,8 @@
 #include <pthread.h>
 #include <sys/utsname.h>
 
+#pragma warning(disable: 4996)   
+
 unsigned long pthread_self()
 {
     return (unsigned long) GetCurrentThreadId();

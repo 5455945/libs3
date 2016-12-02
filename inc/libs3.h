@@ -113,6 +113,8 @@ extern "C" {
  *    deadlock.
  ************************************************************************** **/
 
+#define LIBS3_VER_MAJOR "LIBS3_VER_MAJOR"
+#define LIBS3_VER_MINOR "LIBS3_VER_MINOR"
 
 /** **************************************************************************
  * Constants
@@ -2404,6 +2406,10 @@ void S3_list_multipart_uploads(S3BucketContext *bucketContext,
                                int maxuploads, S3RequestContext *requestContext,
                                const S3ListMultipartUploadsHandler *handler,
                                void *callbackData);
+
+int SendFile(const char* hostname, const char* access_key, const char* secret_key, const char* bucket, const char* key, const char* filename, const char* content_type);
+
+int TestSendFile();
 
 #ifdef __cplusplus
 }

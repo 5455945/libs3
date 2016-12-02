@@ -23,7 +23,7 @@
  * <http://www.gnu.org/licenses/>.
  *
  ************************************************************************** **/
-
+#include "windows.h"
 int setenv(const char *a, const char *b, int c)
 {
     (void) c;
