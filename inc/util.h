@@ -2,12 +2,14 @@
  * util.h
  * 
  * Copyright 2008 Bryan Ischo <bryan@ischo.com>
- * 
+ *
  * This file is part of libs3.
- * 
+ *
  * libs3 is free software: you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation, version 3 of the License.
+ * Software Foundation, version 3 or above of the License.  You can also
+ * redistribute and/or modify it under the terms of the GNU General Public
+ * License, version 2 or above of the License.
  *
  * In addition, as a special exception, the copyright holders give
  * permission to link the code of this library and its programs with the
@@ -20,6 +22,10 @@
  *
  * You should have received a copy of the GNU Lesser General Public License
  * version 3 along with libs3, in a file named COPYING.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ *
+ * You should also have received a copy of the GNU General Public License
+ * version 2 along with libs3, in a file named COPYING-GPLv2.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  ************************************************************************** **/
@@ -38,7 +44,6 @@
 #define ACS_GROUP_ALL_USERS     ACS_URL "global/AllUsers"
 #define ACS_GROUP_AWS_USERS     ACS_URL "global/AuthenticatedUsers"
 #define ACS_GROUP_LOG_DELIVERY  ACS_URL "s3/LogDelivery"
-
 
 
 // Derived from S3 documentation
@@ -64,6 +69,12 @@
 #define MAX_CANONICALIZED_RESOURCE_SIZE \
     (1 + 255 + 1 + MAX_URLENCODED_KEY_SIZE + (sizeof("?torrent") - 1) + 1)
 
+#define MAX_ACCESS_KEY_ID_LENGTH 32
+
+// Maximum length of a credential string
+// <access key>/<yyyymmdd>/<region>/s3/aws4_request
+#define MAX_CREDENTIAL_SIZE \
+   (MAX_ACCESS_KEY_ID_LENGTH + 1) + 8 + 1 + 32 + sizeof("/s3/aws4_request")
 
 // Utilities -----------------------------------------------------------------
 
@@ -71,25 +82,12 @@
 // 3x the number of characters that [source] has.   At most [maxSrcSize] bytes
 // from [src] are encoded; if more are present in [src], 0 is returned from
 // urlEncode, else nonzero is returned.
-int urlEncode(char *dest, const char *src, int maxSrcSize);
+int urlEncode(char *dest, const char *src, int maxSrcSize, int encodeSlash);
 
 // Returns < 0 on failure >= 0 on success
 int64_t parseIso8601Time(const char *str);
 
 uint64_t parseUnsignedInt(const char *str);
-
-// base64 encode bytes.  The output buffer must have at least
-// ((4 * (inLen + 1)) / 3) bytes in it.  Returns the number of bytes written
-// to [out].
-int base64Encode(const unsigned char *in, int inLen, char *out);
-
-// Compute HMAC-SHA-1 with key [key] and message [message], storing result
-// in [hmac]
-void HMAC_SHA1(unsigned char hmac[20], const unsigned char *key, int key_len,
-               const unsigned char *message, int message_len);
-
-// Compute a 64-bit hash values given a set of bytes
-uint64_t hash(const unsigned char *k, int length);
 
 // Because Windows seems to be missing isblank(), use our own; it's a very
 // easy function to write in any case

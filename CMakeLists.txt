@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.6)
 project(libs3)
 	
 set(libs3_src_SOURCES
-	src/acl.c
 	src/bucket.c
+	src/bucket_metadata.c
 	src/error_parser.c
 	src/general.c
 	src/libs3.def
@@ -68,7 +68,9 @@ SET(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/win${_suffix})
 include_directories(inc;inc/mingw;)
 set(mylibcurl "${libs3_SOURCE_DIR}/lib/libx${_suffix}/libcurl/libcurl.lib")
 set(mylibxml2 "${libs3_SOURCE_DIR}/lib/libx${_suffix}/libxml2/libxml2.lib")
-target_link_libraries(libs3 "${mylibxml2}" "${mylibcurl}")
+set(mylibeay32 "${libs3_SOURCE_DIR}/lib/libx${_suffix}/openssl/libeay32.lib")
+set(mylibssleay32 "${libs3_SOURCE_DIR}/lib/libx${_suffix}/openssl/ssleay32.lib")
+target_link_libraries(libs3 "${mylibxml2}" "${mylibcurl}" "${mylibeay32}" "${mylibssleay32}")
 
 
 add_executable(send_data
@@ -86,7 +88,7 @@ add_executable(s3
 )
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/win${_suffix})
 ADD_DEPENDENCIES(s3 libs3)
-target_link_libraries(s3 libs3 "${mylibxml2}" "${mylibcurl}")
+target_link_libraries(s3 libs3 "${mylibxml2}" "${mylibcurl}" "${mylibeay32}" "${mylibssleay32}")
 
 add_executable(testsimplexml
     win-test/testsimplexml.c
@@ -94,7 +96,7 @@ add_executable(testsimplexml
 )
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/win${_suffix})
 ADD_DEPENDENCIES(testsimplexml libs3)
-target_link_libraries(testsimplexml libs3 "${mylibxml2}")
+target_link_libraries(testsimplexml libs3 "${mylibxml2}" "${mylibeay32}" "${mylibssleay32}")
 
 #if(MSVC_VERSION EQUAL 1700)
 #  message(STATUS "1700-msvc_version:" ${MSVC_VERSION})

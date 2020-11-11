@@ -115,7 +115,7 @@ int SendFile(const char* hostname, const char* access_key, const char* secret_ke
 
 	S3_initialize("s3", S3_INIT_ALL, hostname);
 	gResultStatus = S3StatusOK;
-	S3_put_object(&bucketContext, key, data.contentLength, &S3_property, NULL, &putObjectHandler, &data);
+	S3_put_object(&bucketContext, key, data.contentLength, &S3_property, NULL, 3000, &putObjectHandler, &data);
 	fclose(data.infile);
 	S3_deinitialize();
 	return gResultStatus;

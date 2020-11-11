@@ -113,8 +113,8 @@
     </PostBuildEvent>
     <Link>
       <AdditionalOptions> /machine:X86 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;libs3.lib;libxml2.lib;libcurl.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../bin/win32/Debug;../lib/libx32/libxml2;../lib/libx32/libcurl;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;libs3.lib;libxml2.lib;libcurl.lib;libeay32.lib;ssleay32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../bin/win32/Debug;../lib/libx32/libxml2;../lib/libx32/libcurl;../lib/libx32/openssl;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>Debug</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ImportLibrary>../bin/win32/Debug/s3.lib</ImportLibrary>
@@ -152,8 +152,8 @@
     </PostBuildEvent>
     <Link>
       <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;libs3.lib;libxml2.lib;libcurl.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../bin/win64/Debug;../lib/libx64/libxml2;../lib/libx64/libcurl;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;libs3.lib;libxml2.lib;libcurl.lib;libeay32.lib;ssleay32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../bin/win64/Debug;../lib/libx64/libxml2;../lib/libx64/libcurl;../lib/libx64/openssl;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>Debug</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ImportLibrary>../bin/win64/Debug/s3.lib</ImportLibrary>
@@ -191,8 +191,8 @@
     </PostBuildEvent>
     <Link>
       <AdditionalOptions> /machine:X86 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;libs3.lib;libxml2.lib;libcurl.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../bin/win32/Release;../lib/libx32/libcurl;../lib/libx32/libxml2;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;libs3.lib;libxml2.lib;libcurl.lib;libeay32.lib;ssleay32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../bin/win32/Release;../lib/libx32/libcurl;../lib/libx32/libxml2;../lib/libx32/openssl;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>No</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ImportLibrary>../bin/win32/Release/s3.lib</ImportLibrary>
@@ -230,8 +230,8 @@
     </PostBuildEvent>
     <Link>
       <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;libs3.lib;libxml2.lib;libcurl.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../bin/win64/Release;../lib/libx64/libcurl;../lib/libx64/libxml2;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;libs3.lib;libxml2.lib;libcurl.lib;libeay32.lib;ssleay32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../bin/win64/Release;../lib/libx64/libcurl;../lib/libx64/libxml2;../lib/libx64/openssl;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>No</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ImportLibrary>../bin/win64/Release/s3.lib</ImportLibrary>

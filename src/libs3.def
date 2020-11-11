@@ -34,3 +34,5 @@ S3_upload_part
 S3_complete_multipart_upload
 S3_list_parts
 S3_list_multipart_uploads
+S3_get_lifecycle
+S3_set_lifecycle

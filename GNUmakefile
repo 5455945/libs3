@@ -1,12 +1,14 @@
 # GNUmakefile
-# 
+#
 # Copyright 2008 Bryan Ischo <bryan@ischo.com>
-# 
+#
 # This file is part of libs3.
-# 
+#
 # libs3 is free software: you can redistribute it and/or modify it under the
 # terms of the GNU Lesser General Public License as published by the Free
-# Software Foundation, version 3 of the License.
+# Software Foundation, version 3 or above of the License.  You can also
+# redistribute and/or modify it under the terms of the GNU General Public
+# License, version 2 or above of the License.
 #
 # In addition, as a special exception, the copyright holders give
 # permission to link the code of this library and its programs with the
@@ -19,6 +21,10 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # version 3 along with libs3, in a file named COPYING.  If not, see
+# <http://www.gnu.org/licenses/>.
+#
+# You should also have received a copy of the GNU General Public License
+# version 2 along with libs3, in a file named COPYING-GPLv2.  If not, see
 # <http://www.gnu.org/licenses/>.
 
 # I tried to use the autoconf/automake/autolocal/etc (i.e. autohell) tools
@@ -38,8 +44,8 @@
 # --------------------------------------------------------------------------
 # Set libs3 version number, unless it is already set.
 
-LIBS3_VER_MAJOR ?= 2
-LIBS3_VER_MINOR ?= 0
+LIBS3_VER_MAJOR ?= 4
+LIBS3_VER_MINOR ?= 1
 LIBS3_VER := $(LIBS3_VER_MAJOR).$(LIBS3_VER_MINOR)
 
 
@@ -119,6 +125,9 @@ ifndef LIBXML2_CFLAGS
     LIBXML2_CFLAGS := $(shell xml2-config --cflags)
 endif
 
+ifndef OPENSSL_LIBS
+    OPENSSL_LIBS := -lssl -lcrypto
+endif
 
 # --------------------------------------------------------------------------
 # These CFLAGS assume a GNU compiler.  For other compilers, write a script
@@ -142,7 +151,10 @@ CFLAGS += -Wall -Werror -Wshadow -Wextra -Iinc \
           -D_ISOC99_SOURCE \
           -D_POSIX_C_SOURCE=200112L
 
-LDFLAGS = $(CURL_LIBS) $(LIBXML2_LIBS) -lpthread
+LDFLAGS = $(CURL_LIBS) $(LIBXML2_LIBS) $(OPENSSL_LIBS) -lpthread
+
+STRIP ?= strip
+INSTALL := install --strip-program=$(STRIP)
 
 
 # --------------------------------------------------------------------------
@@ -165,11 +177,11 @@ exported: libs3 s3 headers
 .PHONY: install
 install: exported
 	$(QUIET_ECHO) $(DESTDIR)/bin/s3: Installing executable
-	$(VERBOSE_SHOW) install -Dps -m u+rwx,go+rx $(BUILD)/bin/s3 \
+	$(VERBOSE_SHOW) $(INSTALL) -Dps -m u+rwx,go+rx $(BUILD)/bin/s3 \
                     $(DESTDIR)/bin/s3
 	$(QUIET_ECHO) \
         $(LIBDIR)/libs3.so.$(LIBS3_VER): Installing shared library
-	$(VERBOSE_SHOW) install -Dps -m u+rw,go+r \
+	$(VERBOSE_SHOW) $(INSTALL) -Dps -m u+rw,go+r \
                $(BUILD)/lib/libs3.so.$(LIBS3_VER_MAJOR) \
                $(LIBDIR)/libs3.so.$(LIBS3_VER)
 	$(QUIET_ECHO) \
@@ -179,10 +191,10 @@ install: exported
 	$(QUIET_ECHO) $(LIBDIR)/libs3.so: Linking shared library
 	$(VERBOSE_SHOW) ln -sf libs3.so.$(LIBS3_VER_MAJOR) $(LIBDIR)/libs3.so
 	$(QUIET_ECHO) $(LIBDIR)/libs3.a: Installing static library
-	$(VERBOSE_SHOW) install -Dp -m u+rw,go+r $(BUILD)/lib/libs3.a \
+	$(VERBOSE_SHOW) $(INSTALL) -Dp -m u+rw,go+r $(BUILD)/lib/libs3.a \
                     $(LIBDIR)/libs3.a
 	$(QUIET_ECHO) $(DESTDIR)/include/libs3.h: Installing header
-	$(VERBOSE_SHOW) install -Dp -m u+rw,go+r $(BUILD)/include/libs3.h \
+	$(VERBOSE_SHOW) $(INSTALL) -Dp -m u+rw,go+r $(BUILD)/include/libs3.h \
                     $(DESTDIR)/include/libs3.h
 
 
@@ -218,7 +230,7 @@ $(BUILD)/obj/%.do: src/%.c
 	@ $(CC) $(CFLAGS) -M -MG -MQ $@ -DCOMPILINGDEPENDENCIES \
         -o $(BUILD)/dep/$(<:%.c=%.dd) -c $<
 	@ mkdir -p $(dir $@)
-	$(VERBOSE_SHOW) $(CC) $(CFLAGS) -fpic -fPIC -o $@ -c $< 
+	$(VERBOSE_SHOW) $(CC) $(CFLAGS) -fpic -fPIC -o $@ -c $<
 
 
 # --------------------------------------------------------------------------
@@ -230,7 +242,7 @@ LIBS3_STATIC = $(BUILD)/lib/libs3.a
 .PHONY: libs3
 libs3: $(LIBS3_SHARED) $(LIBS3_STATIC)
 
-LIBS3_SOURCES := acl.c bucket.c error_parser.c general.c \
+LIBS3_SOURCES := bucket.c bucket_metadata.c error_parser.c general.c \
                  object.c request.c request_context.c \
                  response_headers_handler.c service_access_logging.c \
                  service.c simplexml.c util.c multipart.c
