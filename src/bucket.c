@@ -1,13 +1,15 @@
 /** **************************************************************************
  * bucket.c
- * 
+ *
  * Copyright 2008 Bryan Ischo <bryan@ischo.com>
- * 
+ *
  * This file is part of libs3.
- * 
+ *
  * libs3 is free software: you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation, version 3 of the License.
+ * Software Foundation, version 3 or above of the License.  You can also
+ * redistribute and/or modify it under the terms of the GNU General Public
+ * License, version 2 or above of the License.
  *
  * In addition, as a special exception, the copyright holders give
  * permission to link the code of this library and its programs with the
@@ -20,6 +22,10 @@
  *
  * You should have received a copy of the GNU Lesser General Public License
  * version 3 along with libs3, in a file named COPYING.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ *
+ * You should also have received a copy of the GNU General Public License
+ * version 2 along with libs3, in a file named COPYING-GPLv2.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  ************************************************************************** **/
@@ -70,7 +76,7 @@ static S3Status testBucketPropertiesCallback
     (const S3ResponseProperties *responseProperties, void *callbackData)
 {
     TestBucketData *tbData = (TestBucketData *) callbackData;
-    
+
     return (*(tbData->responsePropertiesCallback))
         (responseProperties, tbData->callbackData);
 }
@@ -85,15 +91,15 @@ static S3Status testBucketDataCallback(int bufferSize, const char *buffer,
 }
 
 
-static void testBucketCompleteCallback(S3Status requestStatus, 
+static void testBucketCompleteCallback(S3Status requestStatus,
                                        const S3ErrorDetails *s3ErrorDetails,
                                        void *callbackData)
 {
     TestBucketData *tbData = (TestBucketData *) callbackData;
 
     // Copy the location constraint into the return buffer
-    snprintf(tbData->locationConstraintReturn, 
-             tbData->locationConstraintReturnSize, "%s", 
+    snprintf(tbData->locationConstraintReturn,
+             tbData->locationConstraintReturnSize, "%s",
              tbData->locationConstraint);
 
     (*(tbData->responseCompleteCallback))
@@ -107,13 +113,15 @@ static void testBucketCompleteCallback(S3Status requestStatus,
 void S3_test_bucket(S3Protocol protocol, S3UriStyle uriStyle,
                     const char *accessKeyId, const char *secretAccessKey,
                     const char *securityToken, const char *hostName,
-                    const char *bucketName, int locationConstraintReturnSize,
+                    const char *bucketName, const char *authRegion,
+                    int locationConstraintReturnSize,
                     char *locationConstraintReturn,
                     S3RequestContext *requestContext,
+                    int timeoutMs,
                     const S3ResponseHandler *handler, void *callbackData)
 {
     // Create the callback data
-    TestBucketData *tbData = 
+    TestBucketData *tbData =
         (TestBucketData *) malloc(sizeof(TestBucketData));
     if (!tbData) {
         (*(handler->completeCallback))(S3StatusOutOfMemory, 0, callbackData);
@@ -140,7 +148,8 @@ void S3_test_bucket(S3Protocol protocol, S3UriStyle uriStyle,
           uriStyle,                                   // uriStyle
           accessKeyId,                                // accessKeyId
           secretAccessKey,                            // secretAccessKey
-          securityToken },                            // securityToken
+          securityToken,                              // securityToken
+          authRegion },                               // authRegion
         0,                                            // key
         0,                                            // queryParams
         "location",                                   // subResource
@@ -155,7 +164,8 @@ void S3_test_bucket(S3Protocol protocol, S3UriStyle uriStyle,
         0,                                            // toS3CallbackTotalSize
         &testBucketDataCallback,                      // fromS3Callback
         &testBucketCompleteCallback,                  // completeCallback
-        tbData                                        // callbackData
+        tbData,                                       // callbackData
+        timeoutMs                                     // timeoutMs
     };
 
     // Perform the request
@@ -173,20 +183,20 @@ typedef struct CreateBucketData
 
     char doc[1024];
     int docLen, docBytesWritten;
-} CreateBucketData;                         
-                            
+} CreateBucketData;
+
 
 static S3Status createBucketPropertiesCallback
     (const S3ResponseProperties *responseProperties, void *callbackData)
 {
     CreateBucketData *cbData = (CreateBucketData *) callbackData;
-    
+
     return (*(cbData->responsePropertiesCallback))
         (responseProperties, cbData->callbackData);
 }
 
 
-static int createBucketDataCallback(int bufferSize, char *buffer, 
+static int createBucketDataCallback(int bufferSize, char *buffer,
                                     void *callbackData)
 {
     CreateBucketData *cbData = (CreateBucketData *) callbackData;
@@ -198,7 +208,7 @@ static int createBucketDataCallback(int bufferSize, char *buffer,
     int remaining = (cbData->docLen - cbData->docBytesWritten);
 
     int toCopy = bufferSize > remaining ? remaining : bufferSize;
-    
+
     if (!toCopy) {
         return 0;
     }
@@ -211,7 +221,7 @@ static int createBucketDataCallback(int bufferSize, char *buffer,
 }
 
 
-static void createBucketCompleteCallback(S3Status requestStatus, 
+static void createBucketCompleteCallback(S3Status requestStatus,
                                          const S3ErrorDetails *s3ErrorDetails,
                                          void *callbackData)
 {
@@ -223,16 +233,29 @@ static void createBucketCompleteCallback(S3Status requestStatus,
     free(cbData);
 }
 
+static S3Status createBucketFromS3Callback(int bufferSize, const char *buffer,
+                                           void *callbackData)
+{
+    // Sometimes S3 sends response body. We sillently ignore it.
+
+    (void)bufferSize;  // avoid unused parameter warning
+    (void)buffer;  // avoid unused parameter warning
+    (void)callbackData;  // avoid unused parameter warning
+
+    return S3StatusOK;
+}
 
 void S3_create_bucket(S3Protocol protocol, const char *accessKeyId,
                       const char *secretAccessKey, const char *securityToken,
                       const char *hostName, const char *bucketName,
-                      S3CannedAcl cannedAcl, const char *locationConstraint,
+                      const char *authRegion, S3CannedAcl cannedAcl,
+                      const char *locationConstraint,
                       S3RequestContext *requestContext,
+                      int timeoutMs,
                       const S3ResponseHandler *handler, void *callbackData)
 {
     // Create the callback data
-    CreateBucketData *cbData = 
+    CreateBucketData *cbData =
         (CreateBucketData *) malloc(sizeof(CreateBucketData));
     if (!cbData) {
         (*(handler->completeCallback))(S3StatusOutOfMemory, 0, callbackData);
@@ -254,7 +277,7 @@ void S3_create_bucket(S3Protocol protocol, const char *accessKeyId,
     else {
         cbData->docLen = 0;
     }
-    
+
     // Set up S3PutProperties
     S3PutProperties properties =
     {
@@ -269,7 +292,7 @@ void S3_create_bucket(S3Protocol protocol, const char *accessKeyId,
         0,                                       // metaData
         0                                        // useServerSideEncryption
     };
-    
+
     // Set up the RequestParams
     RequestParams params =
     {
@@ -280,7 +303,8 @@ void S3_create_bucket(S3Protocol protocol, const char *accessKeyId,
           S3UriStylePath,                             // uriStyle
           accessKeyId,                                // accessKeyId
           secretAccessKey,                            // secretAccessKey
-          securityToken },                            // securityToken
+          securityToken,                              // securityToken
+          authRegion },                               // authRegion
         0,                                            // key
         0,                                            // queryParams
         0,                                            // subResource
@@ -293,16 +317,17 @@ void S3_create_bucket(S3Protocol protocol, const char *accessKeyId,
         &createBucketPropertiesCallback,              // propertiesCallback
         &createBucketDataCallback,                    // toS3Callback
         cbData->docLen,                               // toS3CallbackTotalSize
-        0,                                            // fromS3Callback
+        createBucketFromS3Callback,                   // fromS3Callback
         &createBucketCompleteCallback,                // completeCallback
-        cbData                                        // callbackData
+        cbData,                                       // callbackData
+        timeoutMs                                     // timeoutMs
     };
 
     // Perform the request
     request_perform(&params, requestContext);
 }
 
-                           
+
 // delete bucket -------------------------------------------------------------
 
 typedef struct DeleteBucketData
@@ -317,13 +342,13 @@ static S3Status deleteBucketPropertiesCallback
     (const S3ResponseProperties *responseProperties, void *callbackData)
 {
     DeleteBucketData *dbData = (DeleteBucketData *) callbackData;
-    
+
     return (*(dbData->responsePropertiesCallback))
         (responseProperties, dbData->callbackData);
 }
 
 
-static void deleteBucketCompleteCallback(S3Status requestStatus, 
+static void deleteBucketCompleteCallback(S3Status requestStatus,
                                          const S3ErrorDetails *s3ErrorDetails,
                                          void *callbackData)
 {
@@ -338,12 +363,14 @@ static void deleteBucketCompleteCallback(S3Status requestStatus,
 
 void S3_delete_bucket(S3Protocol protocol, S3UriStyle uriStyle,
                       const char *accessKeyId, const char *secretAccessKey,
-                      const char *securityToken, const char *hostName, 
-                      const char *bucketName, S3RequestContext *requestContext,
+                      const char *securityToken, const char *hostName,
+                      const char *bucketName, const char *authRegion,
+                      S3RequestContext *requestContext,
+                      int timeoutMs,
                       const S3ResponseHandler *handler, void *callbackData)
 {
     // Create the callback data
-    DeleteBucketData *dbData = 
+    DeleteBucketData *dbData =
         (DeleteBucketData *) malloc(sizeof(DeleteBucketData));
     if (!dbData) {
         (*(handler->completeCallback))(S3StatusOutOfMemory, 0, callbackData);
@@ -364,7 +391,8 @@ void S3_delete_bucket(S3Protocol protocol, S3UriStyle uriStyle,
           uriStyle,                                   // uriStyle
           accessKeyId,                                // accessKeyId
           secretAccessKey,                            // secretAccessKey
-          securityToken },                            // securityToken
+          securityToken,                              // securityToken
+          authRegion },                               // authRegion
         0,                                            // key
         0,                                            // queryParams
         0,                                            // subResource
@@ -379,7 +407,8 @@ void S3_delete_bucket(S3Protocol protocol, S3UriStyle uriStyle,
         0,                                            // toS3CallbackTotalSize
         0,                                            // fromS3Callback
         &deleteBucketCompleteCallback,                // completeCallback
-        dbData                                        // callbackData
+        dbData,                                       // callbackData
+        timeoutMs                                     // timeoutMs
     };
 
     // Perform the request
@@ -462,7 +491,7 @@ static S3Status make_list_bucket_callback(ListBucketData *lbData)
         S3ListBucketContent *contentDest = &(contents[i]);
         ListBucketContents *contentSrc = &(lbData->contents[i]);
         contentDest->key = contentSrc->key;
-        contentDest->lastModified = 
+        contentDest->lastModified =
             parseIso8601Time(contentSrc->lastModified);
         contentDest->eTag = contentSrc->eTag;
         contentDest->size = parseUnsignedInt(contentSrc->size);
@@ -481,7 +510,7 @@ static S3Status make_list_bucket_callback(ListBucketData *lbData)
 
     return (*(lbData->listBucketCallback))
         (isTruncated, lbData->nextMarker,
-         contentsCount, contents, commonPrefixesCount, 
+         contentsCount, contents, commonPrefixesCount,
          (const char **) commonPrefixes, lbData->callbackData);
 }
 
@@ -502,45 +531,46 @@ static S3Status listBucketXmlCallback(const char *elementPath,
             string_buffer_append(lbData->nextMarker, data, dataLen, fit);
         }
         else if (!strcmp(elementPath, "ListBucketResult/Contents/Key")) {
-            ListBucketContents *contents = 
+            ListBucketContents *contents =
                 &(lbData->contents[lbData->contentsCount]);
             string_buffer_append(contents->key, data, dataLen, fit);
         }
-        else if (!strcmp(elementPath, 
+        else if (!strcmp(elementPath,
                          "ListBucketResult/Contents/LastModified")) {
-            ListBucketContents *contents = 
+            ListBucketContents *contents =
                 &(lbData->contents[lbData->contentsCount]);
             string_buffer_append(contents->lastModified, data, dataLen, fit);
         }
         else if (!strcmp(elementPath, "ListBucketResult/Contents/ETag")) {
-            ListBucketContents *contents = 
+            ListBucketContents *contents =
                 &(lbData->contents[lbData->contentsCount]);
             string_buffer_append(contents->eTag, data, dataLen, fit);
         }
         else if (!strcmp(elementPath, "ListBucketResult/Contents/Size")) {
-            ListBucketContents *contents = 
+            ListBucketContents *contents =
                 &(lbData->contents[lbData->contentsCount]);
             string_buffer_append(contents->size, data, dataLen, fit);
         }
         else if (!strcmp(elementPath, "ListBucketResult/Contents/Owner/ID")) {
-            ListBucketContents *contents = 
+            ListBucketContents *contents =
                 &(lbData->contents[lbData->contentsCount]);
             string_buffer_append(contents->ownerId, data, dataLen, fit);
         }
-        else if (!strcmp(elementPath, 
+        else if (!strcmp(elementPath,
                          "ListBucketResult/Contents/Owner/DisplayName")) {
-            ListBucketContents *contents = 
+            ListBucketContents *contents =
                 &(lbData->contents[lbData->contentsCount]);
             string_buffer_append
                 (contents->ownerDisplayName, data, dataLen, fit);
         }
-        else if (!strcmp(elementPath, 
+        else if (!strcmp(elementPath,
                          "ListBucketResult/CommonPrefixes/Prefix")) {
             int which = lbData->commonPrefixesCount;
+            size_t oldLen = lbData->commonPrefixLens[which];
             lbData->commonPrefixLens[which] +=
-                snprintf(lbData->commonPrefixes[which],
+                snprintf(lbData->commonPrefixes[which]+oldLen,
                          sizeof(lbData->commonPrefixes[which]) -
-                         lbData->commonPrefixLens[which] - 1,
+                         oldLen - 1,
                          "%.*s", dataLen, data);
             if (lbData->commonPrefixLens[which] >=
                 (int) sizeof(lbData->commonPrefixes[which])) {
@@ -597,22 +627,22 @@ static S3Status listBucketPropertiesCallback
     (const S3ResponseProperties *responseProperties, void *callbackData)
 {
     ListBucketData *lbData = (ListBucketData *) callbackData;
-    
+
     return (*(lbData->responsePropertiesCallback))
         (responseProperties, lbData->callbackData);
 }
 
 
-static S3Status listBucketDataCallback(int bufferSize, const char *buffer, 
+static S3Status listBucketDataCallback(int bufferSize, const char *buffer,
                                        void *callbackData)
 {
     ListBucketData *lbData = (ListBucketData *) callbackData;
-    
+
     return simplexml_add(&(lbData->simpleXml), buffer, bufferSize);
 }
 
 
-static void listBucketCompleteCallback(S3Status requestStatus, 
+static void listBucketCompleteCallback(S3Status requestStatus,
                                        const S3ErrorDetails *s3ErrorDetails,
                                        void *callbackData)
 {
@@ -635,12 +665,13 @@ static void listBucketCompleteCallback(S3Status requestStatus,
 void S3_list_bucket(const S3BucketContext *bucketContext, const char *prefix,
                     const char *marker, const char *delimiter, int maxkeys,
                     S3RequestContext *requestContext,
+                    int timeoutMs,
                     const S3ListBucketHandler *handler, void *callbackData)
 {
     // Compose the query params
     string_buffer(queryParams, 4096);
     string_buffer_initialize(queryParams);
-    
+
 #define safe_append(name, value)                                        \
     do {                                                                \
         int fit;                                                        \
@@ -661,7 +692,7 @@ void S3_list_bucket(const S3BucketContext *bucketContext, const char *prefix,
         }                                                               \
         amp = 1;                                                        \
         char encoded[3 * 1024];                                         \
-        if (!urlEncode(encoded, value, 1024)) {                         \
+        if (!urlEncode(encoded, value, 1024, 1)) {                   \
             (*(handler->responseHandler.completeCallback))              \
                 (S3StatusQueryParamsTooLong, 0, callbackData);          \
             return;                                                     \
@@ -702,11 +733,11 @@ void S3_list_bucket(const S3BucketContext *bucketContext, const char *prefix,
     }
 
     simplexml_initialize(&(lbData->simpleXml), &listBucketXmlCallback, lbData);
-    
-    lbData->responsePropertiesCallback = 
+
+    lbData->responsePropertiesCallback =
         handler->responseHandler.propertiesCallback;
     lbData->listBucketCallback = handler->listBucketCallback;
-    lbData->responseCompleteCallback = 
+    lbData->responseCompleteCallback =
         handler->responseHandler.completeCallback;
     lbData->callbackData = callbackData;
 
@@ -724,7 +755,8 @@ void S3_list_bucket(const S3BucketContext *bucketContext, const char *prefix,
           bucketContext->uriStyle,                    // uriStyle
           bucketContext->accessKeyId,                 // accessKeyId
           bucketContext->secretAccessKey,             // secretAccessKey
-          bucketContext->securityToken },             // securityToken
+          bucketContext->securityToken,               // securityToken
+          bucketContext->authRegion },                // authRegion
         0,                                            // key
         queryParams[0] ? queryParams : 0,             // queryParams
         0,                                            // subResource
@@ -739,7 +771,8 @@ void S3_list_bucket(const S3BucketContext *bucketContext, const char *prefix,
         0,                                            // toS3CallbackTotalSize
         &listBucketDataCallback,                      // fromS3Callback
         &listBucketCompleteCallback,                  // completeCallback
-        lbData                                        // callbackData
+        lbData,                                       // callbackData
+        timeoutMs                                     // timeoutMs
     };
 
     // Perform the request

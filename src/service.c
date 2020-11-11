@@ -1,13 +1,15 @@
 /** **************************************************************************
  * service.c
- * 
+ *
  * Copyright 2008 Bryan Ischo <bryan@ischo.com>
- * 
+ *
  * This file is part of libs3.
- * 
+ *
  * libs3 is free software: you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation, version 3 of the License.
+ * Software Foundation, version 3 or above of the License.  You can also
+ * redistribute and/or modify it under the terms of the GNU General Public
+ * License, version 2 or above of the License.
  *
  * In addition, as a special exception, the copyright holders give
  * permission to link the code of this library and its programs with the
@@ -22,6 +24,10 @@
  * version 3 along with libs3, in a file named COPYING.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
+ * You should also have received a copy of the GNU General Public License
+ * version 2 along with libs3, in a file named COPYING-GPLv2.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ *
  ************************************************************************** **/
 
 #include <ctype.h>
@@ -34,7 +40,7 @@
 typedef struct XmlCallbackData
 {
     SimpleXml simpleXml;
-    
+
     S3ResponsePropertiesCallback *responsePropertiesCallback;
     S3ListServiceCallback *listServiceCallback;
     S3ResponseCompleteCallback *responseCompleteCallback;
@@ -58,16 +64,16 @@ static S3Status xmlCallback(const char *elementPath, const char *data,
         if (!strcmp(elementPath, "ListAllMyBucketsResult/Owner/ID")) {
             string_buffer_append(cbData->ownerId, data, dataLen, fit);
         }
-        else if (!strcmp(elementPath, 
+        else if (!strcmp(elementPath,
                          "ListAllMyBucketsResult/Owner/DisplayName")) {
             string_buffer_append(cbData->ownerDisplayName, data, dataLen, fit);
         }
-        else if (!strcmp(elementPath, 
+        else if (!strcmp(elementPath,
                          "ListAllMyBucketsResult/Buckets/Bucket/Name")) {
             string_buffer_append(cbData->bucketName, data, dataLen, fit);
         }
         else if (!strcmp
-                 (elementPath, 
+                 (elementPath,
                   "ListAllMyBucketsResult/Buckets/Bucket/CreationDate")) {
             string_buffer_append(cbData->creationDate, data, dataLen, fit);
         }
@@ -100,7 +106,7 @@ static S3Status propertiesCallback
     (const S3ResponseProperties *responseProperties, void *callbackData)
 {
     XmlCallbackData *cbData = (XmlCallbackData *) callbackData;
-    
+
     return (*(cbData->responsePropertiesCallback))
         (responseProperties, cbData->callbackData);
 }
@@ -132,11 +138,13 @@ static void completeCallback(S3Status requestStatus,
 
 void S3_list_service(S3Protocol protocol, const char *accessKeyId,
                      const char *secretAccessKey, const char *securityToken,
-                     const char *hostName, S3RequestContext *requestContext,
+                     const char *hostName, const char *authRegion,
+                     S3RequestContext *requestContext,
+                     int timeoutMs,
                      const S3ListServiceHandler *handler, void *callbackData)
 {
     // Create and set up the callback data
-    XmlCallbackData *data = 
+    XmlCallbackData *data =
         (XmlCallbackData *) malloc(sizeof(XmlCallbackData));
     if (!data) {
         (*(handler->responseHandler.completeCallback))
@@ -156,7 +164,7 @@ void S3_list_service(S3Protocol protocol, const char *accessKeyId,
     string_buffer_initialize(data->ownerDisplayName);
     string_buffer_initialize(data->bucketName);
     string_buffer_initialize(data->creationDate);
-    
+
     // Set up the RequestParams
     RequestParams params =
     {
@@ -167,7 +175,8 @@ void S3_list_service(S3Protocol protocol, const char *accessKeyId,
           S3UriStylePath,                             // uriStyle
           accessKeyId,                                // accessKeyId
           secretAccessKey,                            // secretAccessKey
-          securityToken },                            // securityToken
+          securityToken,                              // securityToken
+          authRegion },                               // authRegion
         0,                                            // key
         0,                                            // queryParams
         0,                                            // subResource
@@ -182,7 +191,8 @@ void S3_list_service(S3Protocol protocol, const char *accessKeyId,
         0,                                            // toS3CallbackTotalSize
         &dataCallback,                                // fromS3Callback
         &completeCallback,                            // completeCallback
-        data                                          // callbackData
+        data,                                         // callbackData
+        timeoutMs                                     // timeoutMs
     };
 
     // Perform the request

@@ -2,12 +2,14 @@
  * response_headers_handler.c
  * 
  * Copyright 2008 Bryan Ischo <bryan@ischo.com>
- * 
+ *
  * This file is part of libs3.
- * 
+ *
  * libs3 is free software: you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation, version 3 of the License.
+ * Software Foundation, version 3 or above of the License.  You can also
+ * redistribute and/or modify it under the terms of the GNU General Public
+ * License, version 2 or above of the License.
  *
  * In addition, as a special exception, the copyright holders give
  * permission to link the code of this library and its programs with the
@@ -22,10 +24,15 @@
  * version 3 along with libs3, in a file named COPYING.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
+ * You should also have received a copy of the GNU General Public License
+ * version 2 along with libs3, in a file named COPYING-GPLv2.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ *
  ************************************************************************** **/
 
 #include <ctype.h>
 #include <string.h>
+#include <strings.h>
 #include "response_headers_handler.h"
 
 
@@ -113,44 +120,45 @@ void response_headers_handler_add(ResponseHeadersHandler *handler,
 
     int valuelen = (end - c) + 1, fit;
 
-    if (!strncmp(header, "x-amz-request-id", namelen)) {
+    if (!strncasecmp(header, "x-amz-request-id", namelen)) {
         responseProperties->requestId = 
             string_multibuffer_current(handler->responsePropertyStrings);
         string_multibuffer_add(handler->responsePropertyStrings, c, 
                                valuelen, fit);
     }
-    else if (!strncmp(header, "x-amz-id-2", namelen)) {
+    else if (!strncasecmp(header, "x-amz-id-2", namelen)) {
         responseProperties->requestId2 = 
             string_multibuffer_current(handler->responsePropertyStrings);
         string_multibuffer_add(handler->responsePropertyStrings, c, 
                                valuelen, fit);
     }
-    else if (!strncmp(header, "Content-Type", namelen)) {
+    else if (!strncasecmp(header, "Content-Type", namelen)) {
         responseProperties->contentType = 
             string_multibuffer_current(handler->responsePropertyStrings);
         string_multibuffer_add(handler->responsePropertyStrings, c, 
                                valuelen, fit);
     }
-    else if (!strncmp(header, "Content-Length", namelen)) {
+    else if (!strncasecmp(header, "Content-Length", namelen)) {
         handler->responseProperties.contentLength = 0;
         while (*c) {
             handler->responseProperties.contentLength *= 10;
             handler->responseProperties.contentLength += (*c++ - '0');
         }
     }
-    else if (!strncmp(header, "Server", namelen)) {
+    else if (!strncasecmp(header, "Server", namelen)) {
         responseProperties->server = 
             string_multibuffer_current(handler->responsePropertyStrings);
         string_multibuffer_add(handler->responsePropertyStrings, c, 
                                valuelen, fit);
     }
-    else if (!strncmp(header, "ETag", namelen)) {
+    else if ((!strncasecmp(header, "ETag", namelen)) 
+         || (!strncasecmp(header, "Etag", namelen))) { // some servers reply with Etag header
         responseProperties->eTag = 
             string_multibuffer_current(handler->responsePropertyStrings);
         string_multibuffer_add(handler->responsePropertyStrings, c, 
                                valuelen, fit);
     }
-    else if (!strncmp(header, S3_METADATA_HEADER_NAME_PREFIX, 
+    else if (!strncasecmp(header, S3_METADATA_HEADER_NAME_PREFIX, 
                       sizeof(S3_METADATA_HEADER_NAME_PREFIX) - 1)) {
         // Make sure there is room for another x-amz-meta header
         if (handler->responseProperties.metaDataCount ==
@@ -189,7 +197,7 @@ void response_headers_handler_add(ResponseHeadersHandler *handler,
         metaHeader->name = copiedName;
         metaHeader->value = copiedValue;
     }
-    else if (!strncmp(header, "x-amz-server-side-encryption", namelen)) {
+    else if (!strncasecmp(header, "x-amz-server-side-encryption", namelen)) {
         if (!strncmp(c, "AES256", sizeof("AES256") - 1)) {
             responseProperties->usesServerSideEncryption = 1;
         }

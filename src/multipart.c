@@ -1,13 +1,15 @@
 /** **************************************************************************
  * multipart.c
- * 
+ *
  * Copyright 2008 Bryan Ischo <bryan@ischo.com>
- * 
+ *
  * This file is part of libs3.
- * 
+ *
  * libs3 is free software: you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation, version 3 of the License.
+ * Software Foundation, version 3 or above of the License.  You can also
+ * redistribute and/or modify it under the terms of the GNU General Public
+ * License, version 2 or above of the License.
  *
  * In addition, as a special exception, the copyright holders give
  * permission to link the code of this library and its programs with the
@@ -20,6 +22,10 @@
  *
  * You should have received a copy of the GNU Lesser General Public License
  * version 3 along with libs3, in a file named COPYING.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ *
+ * You should also have received a copy of the GNU General Public License
+ * version 2 along with libs3, in a file named COPYING-GPLv2.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  ************************************************************************** **/
@@ -40,8 +46,8 @@ typedef struct InitialMultipartData
     void *userdata;
 } InitialMultipartData;
 
-static S3Status InitialMultipartCallback(int bufferSize, const char *buffer, 
-                                         void *callbackData) 
+static S3Status InitialMultipartCallback(int bufferSize, const char *buffer,
+                                         void *callbackData)
 {
     InitialMultipartData *mdata = (InitialMultipartData *) callbackData;
     return simplexml_add(&(mdata->simpleXml), buffer, bufferSize);
@@ -49,7 +55,7 @@ static S3Status InitialMultipartCallback(int bufferSize, const char *buffer,
 
 static void InitialMultipartCompleteCallback
     (S3Status requestStatus, const S3ErrorDetails *s3ErrorDetails,
-     void *callbackData) 
+     void *callbackData)
 {
     InitialMultipartData *mdata = (InitialMultipartData *) callbackData;
 
@@ -61,20 +67,20 @@ static void InitialMultipartCompleteCallback
     if (mdata->handler->responseXmlCallback) {
         (*mdata->handler->responseXmlCallback)
             (mdata->upload_id, mdata->userdata);
-    }    
+    }
 
     simplexml_deinitialize(&(mdata->simpleXml));
     free(mdata);
-}    
+}
 
 static void AbortMultipartUploadCompleteCallback
     (S3Status requestStatus, const S3ErrorDetails *s3ErrorDetails,
-     void *callbackData) 
-{    
+     void *callbackData)
+{
     (void) callbackData;
     (void) s3ErrorDetails;
     fprintf(stderr, "\nERROR: %s\n", S3_get_status_name(requestStatus));
-    
+
 }
 
 static S3Status initialMultipartXmlCallback(const char *elementPath,
@@ -94,14 +100,23 @@ static S3Status initialMultipartXmlCallback(const char *elementPath,
     return S3StatusOK;
 }
 
-void S3_initiate_multipart(S3BucketContext *bucketContext, const char *key,
-                          S3PutProperties *putProperties, 
-                          S3MultipartInitialHandler *handler, 
-                          S3RequestContext *requestContext, 
-                          void *callbackData) 
+static S3Status InitialMultipartPropertiesCallback(const S3ResponseProperties *properties, 
+                                                   void *callbackData) 
 {
-    InitialMultipartData *mdata = 
-        (InitialMultipartData *) malloc(sizeof(InitialMultipartData)); 
+  InitialMultipartData *mdata = (InitialMultipartData *)callbackData;
+  return mdata->handler->responseHandler.propertiesCallback(properties, mdata->userdata);
+}
+
+
+void S3_initiate_multipart(S3BucketContext *bucketContext, const char *key,
+                          S3PutProperties *putProperties,
+                          S3MultipartInitialHandler *handler,
+                          S3RequestContext *requestContext,
+                          int timeoutMs,
+                          void *callbackData)
+{
+    InitialMultipartData *mdata =
+        (InitialMultipartData *) malloc(sizeof(InitialMultipartData));
     simplexml_initialize(&(mdata->simpleXml), &initialMultipartXmlCallback,
                          mdata);
     string_buffer_initialize(mdata->upload_id);
@@ -112,12 +127,13 @@ void S3_initiate_multipart(S3BucketContext *bucketContext, const char *key,
     {
         HttpRequestTypePOST,                          // httpRequestType
         { bucketContext->hostName,                    // hostName
-     	  bucketContext->bucketName,                  // bucketName
+          bucketContext->bucketName,                  // bucketName
           bucketContext->protocol,                    // protocol
           bucketContext->uriStyle,                    // uriStyle
           bucketContext->accessKeyId,                 // accessKeyId
-          bucketContext->secretAccessKey,             //secretAccessKey    
-          bucketContext->securityToken },             // secretToken
+          bucketContext->secretAccessKey,             // secretAccessKey
+          bucketContext->securityToken,               // securityToken
+          bucketContext->authRegion },                // authRegion
         key,                                          // key
         0,                                            // queryParams
         "uploads",                                    // subResource
@@ -127,12 +143,13 @@ void S3_initiate_multipart(S3BucketContext *bucketContext, const char *key,
         0,                                            // startByte
         0,                                            // byteCount
         putProperties,                                // putProperties
-        handler->responseHandler.propertiesCallback,  // propertiesCallback
+        InitialMultipartPropertiesCallback,           // propertiesCallback
         0,                                            // toS3Callback
         0,                                            // toS3CallbackTotalSize
         InitialMultipartCallback,                     // fromS3Callback
         InitialMultipartCompleteCallback,             // completeCallback
-        mdata                                         // callbackData
+        mdata,                                        // callbackData
+        timeoutMs                                     // timeoutMs
     };
 
     // Perform the request
@@ -142,7 +159,8 @@ void S3_initiate_multipart(S3BucketContext *bucketContext, const char *key,
 
 void S3_abort_multipart_upload(S3BucketContext *bucketContext, const char *key,
                                const char *uploadId,
-                               S3AbortMultipartUploadHandler *handler) 
+                               int timeoutMs,
+                               S3AbortMultipartUploadHandler *handler)
 {
     char subResource[512];
     snprintf(subResource, 512, "uploadId=%s", uploadId);
@@ -155,8 +173,9 @@ void S3_abort_multipart_upload(S3BucketContext *bucketContext, const char *key,
           bucketContext->protocol,                    // protocol
           bucketContext->uriStyle,                    // uriStyle
           bucketContext->accessKeyId,                 // accessKeyId
-          bucketContext->secretAccessKey,             //secretAccessKey    
-          bucketContext->securityToken },             // secretToken
+          bucketContext->secretAccessKey,             // secretAccessKey
+          bucketContext->securityToken,               // securityToken
+          bucketContext->authRegion },                // authRegion
         key,                                          // key
         0,                                            // queryParams
         subResource,                                  // subResource
@@ -171,7 +190,8 @@ void S3_abort_multipart_upload(S3BucketContext *bucketContext, const char *key,
         0,                                            // toS3CallbackTotalSize
         0,                                            // fromS3Callback
         AbortMultipartUploadCompleteCallback,         // completeCallback
-        0                                             // callbackData
+        0,                                            // callbackData
+        timeoutMs                                     // timeoutMs
     };
 
     // Perform the request
@@ -187,10 +207,12 @@ void S3_upload_part(S3BucketContext *bucketContext, const char *key,
                     S3PutProperties *putProperties,
                     S3PutObjectHandler *handler, int seq,
                     const char *upload_id, int partContentLength,
-                    S3RequestContext *requestContext, void *callbackData)
+                    S3RequestContext *requestContext,
+                    int timeoutMs,
+                    void *callbackData)
 {
-    char subResource[512];
-    snprintf(subResource, 512, "partNumber=%d&uploadId=%s", seq, upload_id);
+    char queryParams[512];
+    snprintf(queryParams, 512, "partNumber=%d&uploadId=%s", seq, upload_id);
 
     RequestParams params =
     {
@@ -200,11 +222,12 @@ void S3_upload_part(S3BucketContext *bucketContext, const char *key,
           bucketContext->protocol,                    // protocol
           bucketContext->uriStyle,                    // uriStyle
           bucketContext->accessKeyId,                 // accessKeyId
-          bucketContext->secretAccessKey,             //secretAccessKey    
-          bucketContext->securityToken },             // secretToken
+          bucketContext->secretAccessKey,             // secretAccessKey
+          bucketContext->securityToken,               // securityToken
+          bucketContext->authRegion },                // authRegion
         key,                                          // key
-        0,                                            // queryParams
-        subResource,                                  // subResource
+        queryParams,                                  // queryParams
+        0,                                            // subResource
         0,                                            // copySourceBucketName
         0,                                            // copySourceKey
         0,                                            // getConditions
@@ -216,7 +239,8 @@ void S3_upload_part(S3BucketContext *bucketContext, const char *key,
         partContentLength,                            // toS3CallbackTotalSize
         0,                                            // fromS3Callback
         handler->responseHandler.completeCallback,    // completeCallback
-        callbackData                                  // callbackData
+        callbackData,                                 // callbackData
+        timeoutMs                                     // timeoutMs
     };
 
     request_perform(&params, requestContext);
@@ -224,7 +248,7 @@ void S3_upload_part(S3BucketContext *bucketContext, const char *key,
 
 
 /*
- * S3 commit multipart 
+ * S3 commit multipart
  *
  */
 
@@ -232,15 +256,15 @@ typedef struct CommitMultiPartData {
     SimpleXml simplexml;
     void *userdata;
     S3MultipartCommitHandler *handler;
-    //response parsed from 
+    //response parsed from
     string_buffer(location,128);
     string_buffer(etag,128);
 } CommitMultiPartData;
 
 
-static S3Status commitMultipartResponseXMLcallback(const char *elementPath, 
-                                                   const char *data, 
-                                                   int dataLen, 
+static S3Status commitMultipartResponseXMLcallback(const char *elementPath,
+                                                   const char *data,
+                                                   int dataLen,
                                                    void *callbackData)
 {
     int fit;
@@ -254,13 +278,13 @@ static S3Status commitMultipartResponseXMLcallback(const char *elementPath,
         }
     }
     (void) fit;
-    
+
     return S3StatusOK;
 }
 
 
-static S3Status commitMultipartCallback(int bufferSize, const char *buffer, 
-                                        void *callbackData) 
+static S3Status commitMultipartCallback(int bufferSize, const char *buffer,
+                                        void *callbackData)
 {
     CommitMultiPartData *data = (CommitMultiPartData *) callbackData;
     return simplexml_add(&(data->simplexml), buffer, bufferSize);
@@ -271,7 +295,7 @@ static S3Status commitMultipartPropertiesCallback
     (const S3ResponseProperties *responseProperties, void *callbackData)
 {
     CommitMultiPartData *data = (CommitMultiPartData *) callbackData;
-    
+
     if (data->handler->responseHandler.propertiesCallback) {
         (*(data->handler->responseHandler.propertiesCallback))
             (responseProperties, data->userdata);
@@ -280,8 +304,8 @@ static S3Status commitMultipartPropertiesCallback
 }
 
 static void commitMultipartCompleteCallback
-    (S3Status requestStatus, const S3ErrorDetails *s3ErrorDetails, 
-     void *callbackData) 
+    (S3Status requestStatus, const S3ErrorDetails *s3ErrorDetails,
+     void *callbackData)
 {
     CommitMultiPartData *data = (CommitMultiPartData*) callbackData;
     if (data->handler->responseHandler.completeCallback) {
@@ -297,8 +321,8 @@ static void commitMultipartCompleteCallback
 }
 
 
-static int commitMultipartPutObject(int bufferSize, char *buffer, 
-                                    void *callbackData) 
+static int commitMultipartPutObject(int bufferSize, char *buffer,
+                                    void *callbackData)
 {
     CommitMultiPartData *data = (CommitMultiPartData*) callbackData;
     if (data->handler->putObjectDataCallback) {
@@ -312,14 +336,15 @@ static int commitMultipartPutObject(int bufferSize, char *buffer,
 
 void S3_complete_multipart_upload(S3BucketContext *bucketContext,
                                   const char *key,
-                                  S3MultipartCommitHandler *handler, 
-                                  const char *upload_id, int contentLength, 
-                                  S3RequestContext *requestContext, 
+                                  S3MultipartCommitHandler *handler,
+                                  const char *upload_id, int contentLength,
+                                  S3RequestContext *requestContext,
+                                  int timeoutMs,
                                   void *callbackData)
 {
-    char subResource[512];
-    snprintf(subResource, 512, "uploadId=%s", upload_id);
-    CommitMultiPartData *data = 
+    char queryParams[512];
+    snprintf(queryParams, 512, "uploadId=%s", upload_id);
+    CommitMultiPartData *data =
         (CommitMultiPartData *) malloc(sizeof(CommitMultiPartData));
     data->userdata = callbackData;
     data->handler = handler;
@@ -337,11 +362,12 @@ void S3_complete_multipart_upload(S3BucketContext *bucketContext,
           bucketContext->protocol,                    // protocol
           bucketContext->uriStyle,                    // uriStyle
           bucketContext->accessKeyId,                 // accessKeyId
-          bucketContext->secretAccessKey,             //secretAccessKey    
-          bucketContext->securityToken },             // secretToken
+          bucketContext->secretAccessKey,             // secretAccessKey
+          bucketContext->securityToken,               // securityToken
+          bucketContext->authRegion },                // authRegion
         key,                                          // key
-        0,                                            // queryParams
-        subResource,                                  // subResource
+        queryParams,                                  // queryParams
+        0,                                            // subResource
         0,                                            // copySourceBucketName
         0,                                            // copySourceKey
         0,                                            // getConditions
@@ -353,7 +379,8 @@ void S3_complete_multipart_upload(S3BucketContext *bucketContext,
         contentLength,                                // toS3CallbackTotalSize
         commitMultipartCallback,                      // fromS3Callback
         commitMultipartCompleteCallback,              // completeCallback
-        data                                          // callbackData
+        data,                                         // callbackData
+        timeoutMs                                     // timeoutMs
     };
 
     request_perform(&params, requestContext);
@@ -371,7 +398,7 @@ typedef struct ListMultipartUpload
     string_buffer(key, 1024);
     string_buffer(uploadId, 256);
     string_buffer(initiatorId, 256);
-    string_buffer(initiatorDisplayName, 256);    
+    string_buffer(initiatorDisplayName, 256);
     string_buffer(ownerId, 256);
     string_buffer(ownerDisplayName, 256);
     string_buffer(storageClass, 256);
@@ -384,7 +411,7 @@ typedef struct ListPart
     string_buffer(eTag, 1024);
     string_buffer(partNumber, 24);
     string_buffer(size, 256);
-    string_buffer(lastModified, 256);     
+    string_buffer(lastModified, 256);
 } ListPart;
 
 
@@ -421,12 +448,12 @@ typedef struct ListPartsData
 
     string_buffer(isTruncated, 64);
     string_buffer(nextPartNumberMarker, 1024);
-    string_buffer(initiatorId, 256);   
-    string_buffer(initiatorDisplayName, 256);    
+    string_buffer(initiatorId, 256);
+    string_buffer(initiatorDisplayName, 256);
     string_buffer(ownerId, 256);
     string_buffer(ownerDisplayName, 256);
-    string_buffer(storageClass, 256); 
-    
+    string_buffer(storageClass, 256);
+
     int handlePartsStart;
     int partsCount;
     ListPart parts[MAX_PARTS];
@@ -475,7 +502,7 @@ static S3Status listMultipartPropertiesCallback
     (const S3ResponseProperties *responseProperties, void *callbackData)
 {
     ListMultipartData *lmData = (ListMultipartData *) callbackData;
-    
+
     return (*(lmData->responsePropertiesCallback))
         (responseProperties, lmData->callbackData);
 }
@@ -485,26 +512,26 @@ static S3Status listPartsPropertiesCallback
     (const S3ResponseProperties *responseProperties, void *callbackData)
 {
     ListPartsData *lpData = (ListPartsData *) callbackData;
-    
+
     return (*(lpData->responsePropertiesCallback))
         (responseProperties, lpData->callbackData);
 }
 
 
-static S3Status listMultipartDataCallback(int bufferSize, const char *buffer, 
+static S3Status listMultipartDataCallback(int bufferSize, const char *buffer,
                                        void *callbackData)
 {
     ListMultipartData *lmData = (ListMultipartData *) callbackData;
-    
+
     return simplexml_add(&(lmData->simpleXml), buffer, bufferSize);
 }
 
 
-static S3Status listPartsDataCallback(int bufferSize, const char *buffer, 
+static S3Status listPartsDataCallback(int bufferSize, const char *buffer,
                                        void *callbackData)
 {
     ListPartsData *lpData = (ListPartsData *) callbackData;
-    
+
     return simplexml_add(&(lpData->simpleXml), buffer, bufferSize);
 }
 
@@ -565,11 +592,11 @@ static S3Status make_list_parts_callback(ListPartsData *lpData)
         S3ListPart *partDest = &(Parts[i]);
         ListPart *partSrc = &(lpData->parts[i]);
         partDest->eTag = partSrc->eTag;
-        partDest->partNumber = parseUnsignedInt(partSrc->partNumber);       
-        partDest->size = parseUnsignedInt(partSrc->size);   
+        partDest->partNumber = parseUnsignedInt(partSrc->partNumber);
+        partDest->size = parseUnsignedInt(partSrc->size);
         partDest->lastModified = parseIso8601Time(partSrc->lastModified);
     }
-    
+
     return (*(lpData->listPartsCallback))
         (isTruncated, lpData->nextPartNumberMarker, lpData->initiatorId,
          lpData->initiatorDisplayName, lpData->ownerId,
@@ -578,7 +605,7 @@ static S3Status make_list_parts_callback(ListPartsData *lpData)
 }
 
 
-static void listMultipartCompleteCallback(S3Status requestStatus, 
+static void listMultipartCompleteCallback(S3Status requestStatus,
                                           const S3ErrorDetails *s3ErrorDetails,
                                           void *callbackData)
 {
@@ -598,7 +625,7 @@ static void listMultipartCompleteCallback(S3Status requestStatus,
 }
 
 
-static void listPartsCompleteCallback(S3Status requestStatus, 
+static void listPartsCompleteCallback(S3Status requestStatus,
                                       const S3ErrorDetails *s3ErrorDetails,
                                       void *callbackData)
 {
@@ -641,57 +668,57 @@ static S3Status listMultipartXmlCallback(const char *elementPath,
         }
         else if (!strcmp(elementPath,
                          "ListMultipartUploadsResult/Upload/Key")) {
-            ListMultipartUpload *uploads = 
+            ListMultipartUpload *uploads =
                 &(lmData->uploads[lmData->uploadsCount]);
             string_buffer_append(uploads->key, data, dataLen, fit);
         }
-        else if (!strcmp(elementPath, 
+        else if (!strcmp(elementPath,
                          "ListMultipartUploadsResult/Upload/Initiated")) {
-            ListMultipartUpload *uploads = 
+            ListMultipartUpload *uploads =
                 &(lmData->uploads[lmData->uploadsCount]);
             string_buffer_append(uploads->initiated, data, dataLen, fit);
         }
         else if (!strcmp(elementPath,
                          "ListMultipartUploadsResult/Upload/UploadId")) {
-            ListMultipartUpload *uploads = 
+            ListMultipartUpload *uploads =
                 &(lmData->uploads[lmData->uploadsCount]);
             string_buffer_append(uploads->uploadId, data, dataLen, fit);
         }
         else if (!strcmp(elementPath,
                          "ListMultipartUploadsResult/Upload/Initiator/ID")) {
-            ListMultipartUpload *uploads = 
+            ListMultipartUpload *uploads =
                 &(lmData->uploads[lmData->uploadsCount]);
             string_buffer_append(uploads->initiatorId, data, dataLen, fit);
         }
         else if (!strcmp
                  (elementPath,
                   "ListMultipartUploadsResult/Upload/Initiator/DisplayName")) {
-            ListMultipartUpload *uploads = 
+            ListMultipartUpload *uploads =
                 &(lmData->uploads[lmData->uploadsCount]);
             string_buffer_append(uploads->initiatorDisplayName, data, dataLen,
                                  fit);
         }
         else if (!strcmp(elementPath,
                          "ListMultipartUploadsResult/Upload/Owner/ID")) {
-            ListMultipartUpload *uploads = 
+            ListMultipartUpload *uploads =
                 &(lmData->uploads[lmData->uploadsCount]);
             string_buffer_append(uploads->ownerId, data, dataLen, fit);
         }
         else if (!strcmp
-                 (elementPath, 
+                 (elementPath,
                   "ListMultipartUploadsResult/Upload/Owner/DisplayName")) {
-            ListMultipartUpload *uploads = 
+            ListMultipartUpload *uploads =
                 &(lmData->uploads[lmData->uploadsCount]);
             string_buffer_append
                 (uploads->ownerDisplayName, data, dataLen, fit);
         }
-        else if (!strcmp(elementPath, 
+        else if (!strcmp(elementPath,
                          "ListMultipartUploadsResult/Upload/StorageClass")) {
-            ListMultipartUpload *uploads = 
+            ListMultipartUpload *uploads =
                 &(lmData->uploads[lmData->uploadsCount]);
             string_buffer_append(uploads->storageClass, data, dataLen, fit);
         }
-        else if (!strcmp(elementPath, 
+        else if (!strcmp(elementPath,
                          "ListMultipartUploadsResult/CommonPrefixes/Prefix")) {
             int which = lmData->commonPrefixesCount;
             lmData->commonPrefixLens[which] +=
@@ -797,7 +824,7 @@ static S3Status listPartsXmlCallback(const char *elementPath,
         else if (!strcmp(elementPath, "ListPartsResult/Part/Size")) {
             ListPart *parts = &(lpData->parts[lpData->partsCount]);
             string_buffer_append(parts->size, data, dataLen, fit);
-        }       
+        }
     }
     else {
         if (!strcmp(elementPath, "ListPartsResult/Part")) {
@@ -816,7 +843,7 @@ static S3Status listPartsXmlCallback(const char *elementPath,
                 // Initialize the next one
                 initialize_list_part(&(lpData->parts[lpData->partsCount]));
             }
-        }       
+        }
     }
 
     /* Avoid compiler error about variable set but not used */
@@ -829,15 +856,16 @@ static S3Status listPartsXmlCallback(const char *elementPath,
 void S3_list_multipart_uploads(S3BucketContext *bucketContext,
                                const char *prefix, const char *keymarker,
                                const char *uploadidmarker,
-                               const char *encodingtype, const char *delimiter, 
+                               const char *encodingtype, const char *delimiter,
                                int maxuploads, S3RequestContext *requestContext,
+                               int timeoutMs,
                                const S3ListMultipartUploadsHandler *handler,
                                void *callbackData)
 {
     // Compose the query params
     string_buffer(queryParams, 4096);
     string_buffer_initialize(queryParams);
-        
+
 #define safe_append(name, value)                                            \
         do {                                                                \
             int fit;                                                        \
@@ -858,7 +886,7 @@ void S3_list_multipart_uploads(S3BucketContext *bucketContext,
             }                                                               \
             amp = 1;                                                        \
             char encoded[3 * 1024];                                         \
-            if (!urlEncode(encoded, value, 1024)) {                         \
+            if (!urlEncode(encoded, value, 1024, 1)) {                      \
                 (*(handler->responseHandler.completeCallback))              \
                     (S3StatusQueryParamsTooLong, 0, callbackData);          \
                 return;                                                     \
@@ -871,8 +899,8 @@ void S3_list_multipart_uploads(S3BucketContext *bucketContext,
                 return;                                                     \
             }                                                               \
         } while (0)
-    
-    
+
+
         int amp = 0;
         if (prefix && *prefix) {
             safe_append("prefix", prefix);
@@ -895,31 +923,31 @@ void S3_list_multipart_uploads(S3BucketContext *bucketContext,
                      maxuploads);
             safe_append("max-uploads", maxUploadsString);
         }
-    
+
         ListMultipartData *lmData =
             (ListMultipartData *) malloc(sizeof(ListMultipartData));
-    
+
         if (!lmData) {
             (*(handler->responseHandler.completeCallback))
                 (S3StatusOutOfMemory, 0, callbackData);
             return;
         }
-    
+
         simplexml_initialize(&(lmData->simpleXml), &listMultipartXmlCallback,
                              lmData);
-        
-        lmData->responsePropertiesCallback = 
+
+        lmData->responsePropertiesCallback =
             handler->responseHandler.propertiesCallback;
         lmData->listMultipartCallback = handler->responseXmlCallback;
-        lmData->responseCompleteCallback = 
+        lmData->responseCompleteCallback =
             handler->responseHandler.completeCallback;
         lmData->callbackData = callbackData;
-    
+
         string_buffer_initialize(lmData->isTruncated);
         string_buffer_initialize(lmData->nextKeyMarker);
         string_buffer_initialize(lmData->nextUploadIdMarker);
         initialize_list_multipart_data(lmData);
-    
+
         // Set up the RequestParams
         RequestParams params =
         {
@@ -930,7 +958,8 @@ void S3_list_multipart_uploads(S3BucketContext *bucketContext,
               bucketContext->uriStyle,               // uriStyle
               bucketContext->accessKeyId,            // accessKeyId
               bucketContext->secretAccessKey,        // secretAccessKey
-              bucketContext->securityToken },        // securityToken
+              bucketContext->securityToken,          // securityToken
+              bucketContext->authRegion },           // authRegion
             0,                                       // key
             queryParams[0] ? queryParams : 0,        // queryParams
             "uploads",                               // subResource
@@ -945,9 +974,10 @@ void S3_list_multipart_uploads(S3BucketContext *bucketContext,
             0,                                       // toS3CallbackTotalSize
             &listMultipartDataCallback,              // fromS3Callback
             &listMultipartCompleteCallback,          // completeCallback
-            lmData                                   // callbackData
+            lmData,                                  // callbackData
+            timeoutMs                                // timeoutMs
         };
-    
+
         // Perform the request
         request_perform(&params, requestContext);
 }
@@ -957,12 +987,13 @@ void S3_list_parts(S3BucketContext *bucketContext, const char *key,
                    const char *partnumbermarker, const char *uploadid,
                    const char *encodingtype, int maxparts,
                    S3RequestContext *requestContext,
+                   int timeoutMs,
                    const S3ListPartsHandler *handler, void *callbackData)
 {
     // Compose the query params
     string_buffer(queryParams, 4096);
     string_buffer_initialize(queryParams);
-        
+
 #define safe_append(name, value)                                            \
         do {                                                                \
             int fit;                                                        \
@@ -983,7 +1014,7 @@ void S3_list_parts(S3BucketContext *bucketContext, const char *key,
             }                                                               \
             amp = 1;                                                        \
             char encoded[3 * 1024];                                         \
-            if (!urlEncode(encoded, value, 1024)) {                         \
+            if (!urlEncode(encoded, value, 1024, 1)) {                      \
                 (*(handler->responseHandler.completeCallback))              \
                     (S3StatusQueryParamsTooLong, 0, callbackData);          \
                 return;                                                     \
@@ -996,9 +1027,9 @@ void S3_list_parts(S3BucketContext *bucketContext, const char *key,
                 return;                                                     \
             }                                                               \
         } while (0)
-    
+
         char subResource[512];
-        snprintf(subResource, 512, "uploadId=%s", uploadid);   
+        snprintf(subResource, 512, "uploadId=%s", uploadid);
         int amp = 0;
 
         if (partnumbermarker && *partnumbermarker) {
@@ -1012,26 +1043,26 @@ void S3_list_parts(S3BucketContext *bucketContext, const char *key,
             snprintf(maxPartsString, sizeof(maxPartsString), "%d", maxparts);
             safe_append("max-parts", maxPartsString);
         }
-    
+
         ListPartsData *lpData =
             (ListPartsData *) malloc(sizeof(ListPartsData));
-    
+
         if (!lpData) {
             (*(handler->responseHandler.completeCallback))
                 (S3StatusOutOfMemory, 0, callbackData);
             return;
         }
-    
+
         simplexml_initialize(&(lpData->simpleXml), &listPartsXmlCallback,
                              lpData);
-        
-        lpData->responsePropertiesCallback = 
+
+        lpData->responsePropertiesCallback =
             handler->responseHandler.propertiesCallback;
         lpData->listPartsCallback = handler->responseXmlCallback;
-        lpData->responseCompleteCallback = 
+        lpData->responseCompleteCallback =
             handler->responseHandler.completeCallback;
         lpData->callbackData = callbackData;
-    
+
         string_buffer_initialize(lpData->isTruncated);
         string_buffer_initialize(lpData->nextPartNumberMarker);
         string_buffer_initialize(lpData->initiatorId);
@@ -1051,7 +1082,8 @@ void S3_list_parts(S3BucketContext *bucketContext, const char *key,
               bucketContext->uriStyle,               // uriStyle
               bucketContext->accessKeyId,            // accessKeyId
               bucketContext->secretAccessKey,        // secretAccessKey
-              bucketContext->securityToken },        // securityToken
+              bucketContext->securityToken,          // securityToken
+              bucketContext->authRegion },           // authRegion
             key,                                     // key
             queryParams[0] ? queryParams : 0,        // queryParams
             subResource,                             // subResource
@@ -1066,9 +1098,10 @@ void S3_list_parts(S3BucketContext *bucketContext, const char *key,
             0,                                       // toS3CallbackTotalSize
             &listPartsDataCallback,                  // fromS3Callback
             &listPartsCompleteCallback,              // completeCallback
-            lpData                                   // callbackData
+            lpData,                                  // callbackData
+            timeoutMs                                // timeoutMs
         };
-    
+
         // Perform the request
         request_perform(&params, requestContext);
 }
