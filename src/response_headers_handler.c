@@ -32,14 +32,12 @@
 
 #include <ctype.h>
 #include <string.h>
-#ifndef WIN32
+#ifdef _MSC_VER
+#define strncasecmp strnicmp
+#else
 #include <strings.h>
 #endif
 #include "response_headers_handler.h"
-#ifdef _MSC_VER
-#define strcasecmp stricmp
-#define strncasecmp  strnicmp
-#endif
 
 
 void response_headers_handler_initialize(ResponseHeadersHandler *handler)

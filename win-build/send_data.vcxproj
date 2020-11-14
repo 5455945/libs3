@@ -85,7 +85,7 @@
     <IntDir>./tmp/win64/send_data/Debug/</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>../bin/win32/Release/</OutDir>
+    <OutDir>../bin/win64/Release/</OutDir>
     <IntDir>./tmp/win64/send_data/Release/</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

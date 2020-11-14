@@ -90,7 +90,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../inc;../inc/mingw;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../inc;../inc/mingw;../wininc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>Debug/</AssemblerListingLocation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <CompileAs>CompileAsC</CompileAs>
@@ -102,7 +102,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;LIBS3_VER_MAJOR="4";LIBS3_VER_MINOR="1";LIBS3_VER="4.1";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
     </ClCompile>
     <Link>
@@ -112,7 +112,7 @@
       <GenerateDebugInformation>Debug</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ImportLibrary>../bin/win32/Debug/libs3.lib</ImportLibrary>
-      <ModuleDefinitionFile>../src/libs3.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>../mswin/libs3.def</ModuleDefinitionFile>
       <ProgramDataBaseFile>../bin/win32/Debug/libs3.pdb</ProgramDataBaseFile>
       <SubSystem>Console</SubSystem>
       <Version>
@@ -122,12 +122,12 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
     <PostBuildEvent>
-      <Command>copy /y ..\additional_install_files\exec32\* ..\bin\win32\debug\</Command>
+      <Command>copy /y ..\mswin\additional_install_files\exec32\* ..\bin\win32\debug\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../inc;../inc/mingw;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../inc;../inc/mingw;../wininc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>Debug/</AssemblerListingLocation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <CompileAs>CompileAsC</CompileAs>
@@ -139,7 +139,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;LIBS3_VER_MAJOR="4";LIBS3_VER_MINOR="1";LIBS3_VER="4.1";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
     </ClCompile>
     <Link>
@@ -149,7 +149,7 @@
       <GenerateDebugInformation>Debug</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ImportLibrary>../bin/win64/Debug/libs3.lib</ImportLibrary>
-      <ModuleDefinitionFile>../src/libs3.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>../mswin/libs3.def</ModuleDefinitionFile>
       <ProgramDataBaseFile>../bin/win64/Debug/libs3.pdb</ProgramDataBaseFile>
       <SubSystem>Console</SubSystem>
       <Version>
@@ -159,12 +159,12 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
     <PostBuildEvent>
-      <Command>copy /y ..\additional_install_files\exec64\* ..\bin\win64\debug\</Command>
+      <Command>copy /y ..\mswin\additional_install_files\exec64\* ..\bin\win64\debug\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../inc;../inc/mingw;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../inc;../inc/mingw;../wininc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>Release/</AssemblerListingLocation>
       <CompileAs>CompileAsC</CompileAs>
       <ExceptionHandling>
@@ -174,7 +174,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;LIBS3_VER_MAJOR="4";LIBS3_VER_MINOR="1";LIBS3_VER="4.1";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <DebugInformationFormat>
       </DebugInformationFormat>
@@ -186,7 +186,7 @@
       <GenerateDebugInformation>No</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ImportLibrary>../bin/win32/Release/libs3.lib</ImportLibrary>
-      <ModuleDefinitionFile>../src/libs3.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>../mswin/libs3.def</ModuleDefinitionFile>
       <ProgramDataBaseFile>../bin/win32/Release/libs3.pdb</ProgramDataBaseFile>
       <SubSystem>Console</SubSystem>
       <Version>
@@ -196,12 +196,12 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
     <PostBuildEvent>
-      <Command>copy /y ..\additional_install_files\exec32\* ..\bin\win32\release\</Command>
+      <Command>copy /y ..\mswin\additional_install_files\exec32\* ..\bin\win32\release\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../inc;../inc/mingw;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../inc;../inc/mingw;../wininc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>Release/</AssemblerListingLocation>
       <CompileAs>CompileAsC</CompileAs>
       <ExceptionHandling>
@@ -211,7 +211,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;LIBS3_VER_MAJOR="4";LIBS3_VER_MINOR="1";LIBS3_VER="4.1";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <DebugInformationFormat>
       </DebugInformationFormat>
@@ -223,7 +223,7 @@
       <GenerateDebugInformation>No</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ImportLibrary>../bin/win64/Release/libs3.lib</ImportLibrary>
-      <ModuleDefinitionFile>../src/libs3.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>../mswin/libs3.def</ModuleDefinitionFile>
       <ProgramDataBaseFile>../bin/win64/Release/libs3.pdb</ProgramDataBaseFile>
       <SubSystem>Console</SubSystem>
       <Version>
@@ -233,7 +233,7 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
     <PostBuildEvent>
-      <Command>copy /y ..\additional_install_files\exec64\* ..\bin\win64\release\</Command>
+      <Command>copy /y ..\mswin\additional_install_files\exec64\* ..\bin\win64\release\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -253,7 +253,9 @@
     <ClCompile Include="../src/service_access_logging.c" />
     <ClCompile Include="../src/simplexml.c" />
     <ClCompile Include="../src/util.c" />
-    <None Include="../src/libs3.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\mswin\libs3.def" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -484,8 +484,12 @@ static S3Status make_list_bucket_callback(ListBucketData *lbData)
                        !strcmp(lbData->isTruncated, "1")) ? 1 : 0;
 
     // Convert the contents
-    //S3ListBucketContent contents[lbData->contentsCount];
-	S3ListBucketContent* contents = malloc(sizeof(S3ListBucketContent) * lbData->contentsCount);
+#ifdef _MSC_VER
+    S3ListBucketContent* contents = (S3ListBucketContent*)malloc(sizeof(S3ListBucketContent)*lbData->contentsCount);
+#else
+    S3ListBucketContent contents[lbData->contentsCount];
+#endif
+
     int contentsCount = lbData->contentsCount;
     for (i = 0; i < contentsCount; i++) {
         S3ListBucketContent *contentDest = &(contents[i]);
@@ -500,23 +504,41 @@ static S3Status make_list_bucket_callback(ListBucketData *lbData)
         contentDest->ownerDisplayName = (contentSrc->ownerDisplayName[0] ?
                                          contentSrc->ownerDisplayName : 0);
     }
-	free(contents);
 
     // Make the common prefixes array
     int commonPrefixesCount = lbData->commonPrefixesCount;
-    //char *commonPrefixes[commonPrefixesCount];
-	char** commonPrefixes = malloc(sizeof(char*) *commonPrefixesCount);
+#ifdef _MSC_VER
+    char **commonPrefixes = (char**)malloc(sizeof(char*)*commonPrefixesCount);
+#else
+    char *commonPrefixes[commonPrefixesCount];
+#endif
+    
     for (i = 0; i < commonPrefixesCount; i++) {
         commonPrefixes[i] = lbData->commonPrefixes[i];
     }
 
-	S3Status status = (*(lbData->listBucketCallback))
+#ifdef _MSC_VER
+    S3Status status = (*(lbData->listBucketCallback))
         (isTruncated, lbData->nextMarker,
-         contentsCount, contents, commonPrefixesCount,
-         (const char **) commonPrefixes, lbData->callbackData);
-	free(commonPrefixes);
-
-	return status;
+            contentsCount, contents, commonPrefixesCount,
+            (const char **)commonPrefixes, lbData->callbackData);
+    if (contents)
+    {
+        free(contents);
+        contents = NULL;
+    }
+    if (commonPrefixes)
+    {
+        free(commonPrefixes);
+        commonPrefixes = NULL;
+    }
+    return status;
+#else
+    return (*(lbData->listBucketCallback))
+        (isTruncated, lbData->nextMarker,
+            contentsCount, contents, commonPrefixesCount,
+            (const char **)commonPrefixes, lbData->callbackData);
+#endif
 }
 
 

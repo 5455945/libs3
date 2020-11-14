@@ -36,7 +36,6 @@
 #include "simplexml.h"
 #include "util.h"
 
-
 static int initializeCountG = 0;
 
 S3Status S3_initialize(const char *userAgentInfo, int flags,

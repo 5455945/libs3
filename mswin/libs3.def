@@ -25,3 +25,13 @@ S3_set_server_access_logging
 S3_status_is_retryable
 S3_test_bucket
 S3_validate_bucket_name
+
+S3_abort_multipart_upload
+S3_complete_multipart_upload
+S3_copy_object_range
+S3_get_lifecycle
+S3_set_lifecycle
+S3_initiate_multipart
+S3_upload_part
+S3_list_parts
+S3_list_multipart_uploads

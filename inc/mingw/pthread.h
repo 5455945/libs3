@@ -33,7 +33,9 @@
 #ifndef PTHREAD_H
 #define PTHREAD_H
 
-#include <windows.h>
+#ifdef _MSC_VER
+#include <winsock2.h>
+#endif
 
 // This is a minimal implementation of pthreads on Windows, implementing just
 // the APIs needed by libs3
@@ -43,7 +45,7 @@ unsigned long pthread_self();
 typedef struct 
 {
     CRITICAL_SECTION criticalSection;
-}pthread_mutex_t;
+} pthread_mutex_t;
 
 int pthread_mutex_init(pthread_mutex_t *mutex, void *);
 int pthread_mutex_lock(pthread_mutex_t *mutex);

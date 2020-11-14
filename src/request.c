@@ -31,7 +31,7 @@
  ************************************************************************** **/
 
 #include <ctype.h>
-
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/utsname.h>
@@ -39,8 +39,14 @@
 #include "request.h"
 #include "request_context.h"
 #include "response_headers_handler.h"
-#include "util.h"
-#include <pthread.h>
+
+#ifdef _MSC_VER
+#include <winsock2.h>
+#pragma comment (lib, "ws2_32.lib")
+#define gmtime_r(time_, gmt_) gmtime_s(gmt_, time_)
+#define strtok_r strtok_s
+BOOL gWinSockInit = FALSE; // 全局winsock初始化标识
+#endif
 
 #ifdef __APPLE__
 #include <CommonCrypto/CommonHMAC.h>
@@ -50,11 +56,6 @@
 #include <openssl/sha.h>
 #define S3_SHA256_DIGEST_LENGTH SHA256_DIGEST_LENGTH
 #endif
-
-#ifdef WIN32
-#define strtok_r strtok_s
-#endif
-
 
 #define USER_AGENT_SIZE 256
 #define REQUEST_STACK_SIZE 32
@@ -393,15 +394,8 @@ static S3Status compose_amz_headers(const RequestParams *params,
         }
     }
 
-    //// Add the x-amz-date header
-    //time_t now = time(NULL);
-    //char date[64];
-    //struct tm gmt;
-    //gmt = *gmtime(&now);
-    //strftime(date, sizeof(date), "%a, %d %b %Y %H:%M:%S GMT", &gmt);
-    //headers_append(1, "x-amz-date: %s", date);
+    // Add the x-amz-date header
     append_amz_header(values, 0, "x-amz-date", values->requestDateISO8601);
-
 
     if (params->httpRequestType == HttpRequestTypeCOPY) {
         // Add the x-amz-copy-source header
@@ -585,9 +579,8 @@ static S3Status compose_standard_headers(const RequestParams *params,
     if (params->putProperties && (params->putProperties->expires >= 0)) {
         time_t t = (time_t) params->putProperties->expires;
         struct tm gmt;
-		gmt = *gmtime(&t);
         strftime(values->expiresHeader, sizeof(values->expiresHeader),
-                 "Expires: %a, %d %b %Y %H:%M:%S UTC", &gmt);
+                 "Expires: %a, %d %b %Y %H:%M:%S UTC", gmtime_r(&t, &gmt));
     }
     else {
         values->expiresHeader[0] = 0;
@@ -598,10 +591,9 @@ static S3Status compose_standard_headers(const RequestParams *params,
         (params->getConditions->ifModifiedSince >= 0)) {
         time_t t = (time_t) params->getConditions->ifModifiedSince;
         struct tm gmt;
-		gmt = *gmtime(&t);
         strftime(values->ifModifiedSinceHeader,
                  sizeof(values->ifModifiedSinceHeader),
-                 "If-Modified-Since: %a, %d %b %Y %H:%M:%S UTC", &gmt);
+                 "If-Modified-Since: %a, %d %b %Y %H:%M:%S UTC", gmtime_r(&t, &gmt));
     }
     else {
         values->ifModifiedSinceHeader[0] = 0;
@@ -612,10 +604,9 @@ static S3Status compose_standard_headers(const RequestParams *params,
         (params->getConditions->ifNotModifiedSince >= 0)) {
         time_t t = (time_t) params->getConditions->ifNotModifiedSince;
         struct tm gmt;
-		gmt = *gmtime(&t);
         strftime(values->ifUnmodifiedSinceHeader,
                  sizeof(values->ifUnmodifiedSinceHeader),
-                 "If-Unmodified-Since: %a, %d %b %Y %H:%M:%S UTC", &gmt);
+                 "If-Unmodified-Since: %a, %d %b %Y %H:%M:%S UTC", gmtime_r(&t, &gmt));
     }
     else {
         values->ifUnmodifiedSinceHeader[0] = 0;
@@ -846,8 +837,11 @@ static void sort_query_string(const char *queryString, char *result,
         tmp++;
     }
 
-    char* params = (char*)malloc(sizeof(char*)*numParams);
-    //const char* params[cnumParams];
+#ifdef _MSC_VER
+    char* params = (char*)malloc(sizeof(char)*numParams);
+#else
+    const char* params[numParams];
+#endif
 
     // Where did strdup go?!??
     int queryStringLen = strlen(queryString);
@@ -857,7 +851,7 @@ static void sort_query_string(const char *queryString, char *result,
     const char *token = NULL;
     char *save = NULL;
     unsigned int i = 0;
-    
+
     while ((token = strtok_r(tok, "&", &save)) != NULL) {
         tok = NULL;
         params[i++] = token;
@@ -884,8 +878,14 @@ static void sort_query_string(const char *queryString, char *result,
         result[len - 1] = 0;
     }
 #undef append
-    free(params);
+
     free(buf);
+#ifdef _MSC_VER
+    if (params) {
+        free(params);
+        params = NULL;
+    }
+#endif
 }
 
 
@@ -901,12 +901,18 @@ static void canonicalize_query_string(const char *queryParams,
 #define append(str) len += snprintf(&(buffer[len]), buffer_size - len, "%s", str)
 
     if (queryParams && queryParams[0]) {
-        //char sorted[strlen(queryParams) * 2];
-        char* sorted = (char*)malloc(strlen(queryParams) * 2);
+#ifdef _MSC_VER
+        char* sorted = malloc(sizeof(char)*strlen(queryParams) * 2);
         sorted[0] = '\0';
         sort_query_string(queryParams, sorted, sizeof(sorted));
         append(sorted);
         free(sorted);
+#else
+        char sorted[strlen(queryParams) * 2];
+        sorted[0] = '\0';
+        sort_query_string(queryParams, sorted, sizeof(sorted));
+        append(sorted);
+#endif
     }
 
     if (subResource && subResource[0]) {
@@ -983,8 +989,11 @@ static S3Status compose_auth_header(const RequestParams *params,
 
     int len = 0;
 
-    //char canonicalRequest[canonicalRequestLen];
-    char* canonicalRequest = (char*)malloc(canonicalRequestLen);
+#ifdef _MSC_VER
+    char* canonicalRequest = (char*)malloc(sizeof(char)*canonicalRequestLen);
+#else
+    char canonicalRequest[canonicalRequestLen];
+#endif;
 
 #define buf_append(buf, format, ...)                    \
     len += snprintf(&(buf[len]), sizeof(buf) - len,     \
@@ -1011,7 +1020,6 @@ static S3Status compose_auth_header(const RequestParams *params,
     const unsigned char *rqstData = (const unsigned char*) canonicalRequest;
     SHA256(rqstData, strlen(canonicalRequest), canonicalRequestHash);
 #endif
-    free(canonicalRequest);
     char canonicalRequestHashHex[2 * S3_SHA256_DIGEST_LENGTH + 1];
     canonicalRequestHashHex[0] = '\0';
     int i = 0;
@@ -1023,23 +1031,38 @@ static S3Status compose_auth_header(const RequestParams *params,
     if (params->bucketContext.authRegion) {
         awsRegion = params->bucketContext.authRegion;
     }
+
+#ifdef _MSC_VER
+    char stringToSign[512];
+    memset(stringToSign, 0, sizeof(stringToSign));
+    snprintf(stringToSign, sizeof(stringToSign), "AWS4-HMAC-SHA256\n%s\n%.8s/%s/s3/aws4_request\n%s",
+        values->requestDateISO8601, values->requestDateISO8601, awsRegion, canonicalRequestHashHex);
+#else
     char scope[sizeof(values->requestDateISO8601) + sizeof(awsRegion) +
-               sizeof("//s3/aws4_request") + 1];
+        sizeof("//s3/aws4_request") + 1];
     snprintf(scope, sizeof(scope), "%.8s/%s/s3/aws4_request",
-             values->requestDateISO8601, awsRegion);
+        values->requestDateISO8601, awsRegion);
 
     char stringToSign[17 + 17 + sizeof(values->requestDateISO8601) +
-                      sizeof(scope) + sizeof(canonicalRequestHashHex) + 1];
+        sizeof(scope) + sizeof(canonicalRequestHashHex) + 1];
     snprintf(stringToSign, sizeof(stringToSign), "AWS4-HMAC-SHA256\n%s\n%s\n%s",
-             values->requestDateISO8601, scope, canonicalRequestHashHex);
+        values->requestDateISO8601, scope, canonicalRequestHashHex);
+#endif
 
 #ifdef SIGNATURE_DEBUG
     printf("--\nString to Sign:\n%s\n", stringToSign);
 #endif
 
     const char *secretAccessKey = params->bucketContext.secretAccessKey;
-    //char accessKey[strlen(secretAccessKey) + 5];
-    char* accessKey = (char*) malloc(strlen(secretAccessKey) + 5);
+#ifdef _MSC_VER
+    int keylen = 0;
+    if (secretAccessKey) {
+        keylen = strlen(secretAccessKey);
+    }
+    char* accessKey = (char*)malloc(sizeof(char)*keylen + 5);
+#else
+    char accessKey[strlen(secretAccessKey) + 5];
+#endif
     snprintf(accessKey, sizeof(accessKey), "AWS4%s", secretAccessKey);
 
 #ifdef __APPLE__
@@ -1103,7 +1126,17 @@ static S3Status compose_auth_header(const RequestParams *params,
 #ifdef SIGNATURE_DEBUG
     printf("--\nAuthorization Header:\n%s\n", values->authorizationHeader);
 #endif
-    free(accessKey);
+
+#ifdef _MSC_VER
+    if (canonicalRequest) {
+        free(canonicalRequest);
+        canonicalRequest = NULL;
+    }
+    if (accessKey) {
+        free(accessKey);
+        accessKey = NULL;
+    }
+#endif
     return S3StatusOK;
 
 #undef buf_append
@@ -1442,6 +1475,11 @@ static void request_destroy(Request *request)
     request_deinitialize(request);
     curl_easy_cleanup(request->curl);
     free(request);
+#ifdef _MSC_VER
+    if (gWinSockInit) {
+        WSACleanup();
+    }
+#endif
 }
 
 
@@ -1468,6 +1506,16 @@ static void request_release(Request *request)
 S3Status request_api_initialize(const char *userAgentInfo, int flags,
                                 const char *defaultHostName)
 {
+#ifdef _MSC_VER
+    if (!gWinSockInit) {
+        WSADATA wsaData;
+        S3Status status = WSAStartup(MAKEWORD(2, 2), &wsaData);
+        if (status != ERROR_SUCCESS) {
+            return status;
+        }
+        gWinSockInit = TRUE;
+    }
+#endif
     if (curl_global_init(CURL_GLOBAL_ALL &
                          ~((flags & S3_INIT_WINSOCK) ? 0 : CURL_GLOBAL_WIN32))
         != CURLE_OK) {
@@ -1537,11 +1585,7 @@ static S3Status setup_request(const RequestParams *params,
 
     time_t now = time(NULL);
     struct tm gmt;
-#ifdef WIN32
-    gmtime_s(&gmt, &now);
-#else
     gmtime_r(&now, &gmt);
-#endif
     strftime(computed->requestDateISO8601, sizeof(computed->requestDateISO8601),
              "%Y%m%dT%H%M%SZ", &gmt);
 

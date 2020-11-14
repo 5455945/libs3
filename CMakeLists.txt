@@ -7,7 +7,6 @@ set(libs3_src_SOURCES
 	src/bucket_metadata.c
 	src/error_parser.c
 	src/general.c
-	src/libs3.def
 	src/mingw_functions.c
 	src/mingw_s3_functions.c
 	src/multipart.c
@@ -18,7 +17,8 @@ set(libs3_src_SOURCES
 	src/service.c
 	src/service_access_logging.c
 	src/simplexml.c
-	src/util.c)
+	src/util.c
+	mswin/libs3.def)
 
 set(libs3_inc_wingw_sys_HEADERS
 	inc/mingw/sys/select.h
@@ -29,7 +29,6 @@ set(libs3_inc_wingw_HEADERS
 	
 set(libs3_inc_HEADERS
 	inc/error_parser.h
-	inc/iconv.h
 	inc/libs3.h
 	inc/request.h
 	inc/request_context.h
@@ -65,13 +64,14 @@ else()
 endif()
 
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/win${_suffix})
-include_directories(inc;inc/mingw;)
-set(mylibcurl "${libs3_SOURCE_DIR}/lib/libx${_suffix}/libcurl/libcurl.lib")
-set(mylibxml2 "${libs3_SOURCE_DIR}/lib/libx${_suffix}/libxml2/libxml2.lib")
-set(mylibeay32 "${libs3_SOURCE_DIR}/lib/libx${_suffix}/openssl/libeay32.lib")
-set(mylibssleay32 "${libs3_SOURCE_DIR}/lib/libx${_suffix}/openssl/ssleay32.lib")
+include_directories(inc;inc/mingw;wininc;win-test)
+set(mylibcurl "${libs3_SOURCE_DIR}/winlib/libx${_suffix}/libcurl/libcurl.lib")
+set(mylibxml2 "${libs3_SOURCE_DIR}/winlib/libx${_suffix}/libxml2/libxml2.lib")
+set(mylibeay32 "${libs3_SOURCE_DIR}/winlib/libx${_suffix}/openssl/libeay32.lib")
+set(mylibssleay32 "${libs3_SOURCE_DIR}/winlib/libx${_suffix}/openssl/ssleay32.lib")
 target_link_libraries(libs3 "${mylibxml2}" "${mylibcurl}" "${mylibeay32}" "${mylibssleay32}")
-
+target_compile_definitions(libs3 PRIVATE -DLIBS3_VER_MAJOR=\"4\" PRIVATE -DLIBS3_VER_MINOR=\"1\")
+target_compile_definitions(libs3 PRIVATE -DLIBS3_VER=${LIBS3_VER_MAJOR}.${LIBS3_VER_MINOR})
 
 add_executable(send_data
     win-test/send-data.c
@@ -82,17 +82,17 @@ ADD_DEPENDENCIES(send_data libs3)
 target_link_libraries(send_data libs3)
 
 add_executable(s3
-    win-test/s3.c
-	win-test/getopt.h
-	win-test/getopt.c
+    src/s3.c
+    win-test/getopt.h
+    win-test/getopt.c
 )
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/win${_suffix})
 ADD_DEPENDENCIES(s3 libs3)
 target_link_libraries(s3 libs3 "${mylibxml2}" "${mylibcurl}" "${mylibeay32}" "${mylibssleay32}")
 
 add_executable(testsimplexml
-    win-test/testsimplexml.c
-	src/simplexml.c
+    src/testsimplexml.c
+    src/simplexml.c
 )
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/win${_suffix})
 ADD_DEPENDENCIES(testsimplexml libs3)
@@ -106,23 +106,23 @@ target_link_libraries(testsimplexml libs3 "${mylibxml2}" "${mylibeay32}" "${myli
 #  message(STATUS "1900-msvc_version:" ${MSVC_VERSION})
 #endif()
 
-function(obs_helper_copy_dir target target_configs source dest)
+function(helper_copy_dir target target_configs source dest)
 	add_custom_command(TARGET ${target} POST_BUILD
 		COMMAND "${CMAKE_COMMAND}"
 			"-DCONFIG=$<CONFIGURATION>"
 			"-DTARGET_CONFIGS=${target_configs}"
 			"-DINPUT=${source}"
 			"-DOUTPUT=${dest}"
-			-P "${CMAKE_SOURCE_DIR}/cmake/copy_helper.cmake"
+			-P "${CMAKE_SOURCE_DIR}/mswin/cmake/copy_helper.cmake"
 		VERBATIM)
 endfunction()
 
-function(obs_install_additional maintarget)
-    set(addfdir "${CMAKE_SOURCE_DIR}/additional_install_files")
+function(install_additional maintarget)
+    set(addfdir "${CMAKE_SOURCE_DIR}/mswin/additional_install_files")
 	
-	obs_helper_copy_dir(${maintarget} ALL
+	helper_copy_dir(${maintarget} ALL
 		"${addfdir}/exec${_suffix}/"
 		"${CMAKE_SOURCE_DIR}/bin/win${_suffix}/$<CONFIGURATION>/")
 endfunction()
 
-obs_install_additional(s3)
+install_additional(s3)

@@ -85,7 +85,7 @@ int SendFile(const char* hostname, const char* access_key, const char* secret_ke
 
 	PUT_OBJECT_CALLBACK_DATA data;
 	struct stat statbuf;
-
+    memset(&bucketContext, 0, sizeof(bucketContext));
 	bucketContext.hostName = hostname;
 	bucketContext.bucketName = bucket;
 	bucketContext.protocol = S3ProtocolHTTP;
@@ -129,7 +129,7 @@ int TestSendFile()
 	char secret_key[] = "UtbaZSpla3XXXXXXXXXXXXXXX0BxWNTFOA"; // 对应access_key的安全码
 	char bucket[] = "video01";  // 对应access_key下面的bucket
 	char key[] = "ddddd/a.flv"; // 对应bucket下面的一个具体对象，可以由路径 + 文件名组成
-	char filename[] = "D:\\git\\libs3\\libs3\\Debug\\a.flv";  // 要上传的本地文件
+	char filename[] = "D:\\git\\libs3\\bin\\win32\\Debug\\a.flv";  // 要上传的本地文件
 	char contentType[] = "video/x-flv";  // Content-Type(Mime-Type)
 
 	int ret = SendFile(hostname, access_key, secret_key, bucket, key, filename, contentType);

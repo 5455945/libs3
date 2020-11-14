@@ -29,11 +29,8 @@
  * <http://www.gnu.org/licenses/>.
  *
  ************************************************************************** **/
-
 #include <pthread.h>
 #include <sys/utsname.h>
-
-#pragma warning(disable: 4996)   
 
 unsigned long pthread_self()
 {

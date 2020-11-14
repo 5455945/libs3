@@ -119,8 +119,6 @@ extern "C" {
  *    deadlock.
  ************************************************************************** **/
 
-#define LIBS3_VER_MAJOR "LIBS3_VER_MAJOR"
-#define LIBS3_VER_MINOR "LIBS3_VER_MINOR"
 
 /** **************************************************************************
  * Constants
@@ -2616,23 +2614,6 @@ void S3_list_multipart_uploads(S3BucketContext *bucketContext,
                                int timeoutMs,
                                const S3ListMultipartUploadsHandler *handler,
                                void *callbackData);
-
-
-//S3Status convertAclXmlCallback(const char *elementPath, const char *data, int dataLen, void *callbackData);
-
-//void S3_deinitialize();
-
-//const char *S3_get_status_name(S3Status status);
-
-//S3Status S3_initialize(const char *userAgentInfo, int flags, const char *defaultS3HostName);
-
-//int S3_status_is_retryable(S3Status status);
-
-//S3Status S3_validate_bucket_name(const char *bucketName, S3UriStyle uriStyle);
-
-int SendFile(const char* hostname, const char* access_key, const char* secret_key, const char* bucket, const char* key, const char* filename, const char* content_type);
-
-int TestSendFile();
 
 #ifdef __cplusplus
 }

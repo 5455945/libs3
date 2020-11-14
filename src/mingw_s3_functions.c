@@ -29,7 +29,9 @@
  * <http://www.gnu.org/licenses/>.
  *
  ************************************************************************** **/
-#include "windows.h"
+#ifdef _MSC_VER
+#include <Windows.h>
+#endif
 int setenv(const char *a, const char *b, int c)
 {
     (void) c;
